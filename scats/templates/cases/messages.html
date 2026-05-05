@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.messages-wrapper { font-family: "DM Sans", sans-serif; background: #f0f2f5; padding: 28px 32px; }
+.page-title { font-size: 22px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+.page-subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+.messages-layout { display: flex; height: calc(100vh - 160px); background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+/* SIDEBAR */
+.inbox-sidebar { width: 290px; min-width: 260px; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; background: #fafafa; }
+.inbox-top { padding: 16px 14px 10px; border-bottom: 1px solid #e2e8f0; }
+.inbox-top h2 { font-size: 17px; font-weight: 600; color: #0f172a; margin-bottom: 10px; }
+.search-row input { width: 100%; border: 1px solid #e2e8f0; border-radius: 20px; padding: 7px 14px; font-size: 13px; font-family: "DM Sans", sans-serif; background: #f1f5f9; outline: none; color: #0f172a; }
+.search-row input::placeholder { color: #94a3b8; }
+.search-row input:focus { border-color: #1b3a6b; background: #fff; }
+.inbox-list { flex: 1; overflow-y: auto; }
+.inbox-list::-webkit-scrollbar { width: 3px; }
+.inbox-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+.convo-item { display: flex; align-items: center; gap: 11px; padding: 12px 14px; cursor: pointer; transition: background .12s; text-decoration: none; color: inherit; border-bottom: 1px solid #f1f5f9; position: relative; }
+.convo-item:hover { background: #f1f5f9; }
+.convo-item.active { background: #e8edf7; }
+.convo-item.active::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #1b3a6b; border-radius: 0 2px 2px 0; }
+.convo-avatar { width: 42px; height: 42px; border-radius: 50%; background: #1b3a6b; color: #c4a84a; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.convo-info { flex: 1; min-width: 0; }
+.convo-name-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+.convo-name { font-size: 13.5px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.convo-time { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+.convo-preview { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unread-dot { width: 8px; height: 8px; background: #1b3a6b; border-radius: 50%; flex-shrink: 0; }
+
+/* CHAT PANEL */
+.chat-panel { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; }
+.chat-header { padding: 14px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; }
+.chat-avatar { width: 38px; height: 38px; border-radius: 50%; background: #1b3a6b; color: #c4a84a; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.chat-name-block .name { font-size: 14px; font-weight: 600; color: #0f172a; }
+.chat-name-block .role { font-size: 11.5px; color: #64748b; }
+
+/* MESSAGES */
+.chat-body { flex: 1; padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.chat-body::-webkit-scrollbar { width: 4px; }
+.chat-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+.msg-group { display: flex; flex-direction: column; margin-bottom: 8px; }
+.msg-group.sent { align-items: flex-end; }
+.msg-group.received { align-items: flex-start; }
+
+.msg-row { display: flex; align-items: flex-end; gap: 8px; }
+.msg-row.sent { flex-direction: row-reverse; }
+
+.msg-avatar-sm { width: 28px; height: 28px; border-radius: 50%; background: #1b3a6b; color: #c4a84a; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+.bubble {
+  display: inline-block;
+  max-width: 460px;
+  min-width: 0;
+  padding: 10px 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.msg-group.received .bubble { background: #f1f5f9; color: #0f172a; border-radius: 18px 18px 18px 4px; }
+.msg-group.sent .bubble { background: #1b3a6b; color: #fff; border-radius: 18px 18px 4px 18px; }
+
+.msg-time { font-size: 11px; color: #94a3b8; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.msg-group.sent .msg-time { justify-content: flex-end; }
+.tick { font-size: 11px; color: #94a3b8; }
+
+/* Typing indicator */
+.typing-indicator { display: none; align-items: flex-end; gap: 8px; margin-top: 4px; }
+.typing-indicator.visible { display: flex; }
+.typing-bubble { background: #f1f5f9; border-radius: 18px 18px 18px 4px; padding: 10px 16px; display: flex; gap: 5px; align-items: center; }
+.typing-bubble span { width: 7px; height: 7px; background: #94a3b8; border-radius: 50%; animation: tbounce 1.2s infinite; }
+.typing-bubble span:nth-child(2) { animation-delay: .2s; }
+.typing-bubble span:nth-child(3) { animation-delay: .4s; }
+@keyframes tbounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+/* FOOTER */
+.chat-footer { border-top: 1px solid #e2e8f0; padding: 12px 20px 14px; background: #fff; }
+.input-wrapper { display: flex; align-items: flex-end; gap: 10px; background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 24px; padding: 8px 8px 8px 16px; transition: border-color .2s; }
+.input-wrapper:focus-within { border-color: #1b3a6b; background: #fff; }
+#messageInput { flex: 1; border: none; background: transparent; font-size: 14px; font-family: "DM Sans", sans-serif; color: #0f172a; outline: none; resize: none; max-height: 120px; min-height: 22px; line-height: 1.5; padding: 2px 0; overflow-y: auto; }
+#messageInput::placeholder { color: #94a3b8; }
+.send-btn { width: 36px; height: 36px; background: #1b3a6b; color: #fff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s, transform .1s; }
+.send-btn:hover { background: #162f57; transform: scale(1.05); }
+.send-btn:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; }
+.secure-notice { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #94a3b8; }
+.empty-state p { font-size: 14px; }
+</style>
+
+<div class="messages-wrapper">
+  <nav style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:16px;flex-wrap:wrap;">
+    <a href="{% url 'my_cases' %}" style="color:#64748b;text-decoration:none;font-weight:500;">My Cases</a>
+    <svg width="12" height="12" fill="none" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#cbd5e1;flex-shrink:0;"><path d="M4 2l4 4-4 4"/></svg>
+    {% if selected_case %}
+      <a href="{% url 'messages' %}" style="color:#64748b;text-decoration:none;font-weight:500;">Messages</a>
+      <svg width="12" height="12" fill="none" viewBox="0 0 12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#cbd5e1;flex-shrink:0;"><path d="M4 2l4 4-4 4"/></svg>
+      <span style="color:#0f172a;font-weight:600;">
+        {% if selected_case.assigned_officer %}
+          {{ selected_case.assigned_officer.get_full_name }}
+        {% elif selected_case.victim_name %}
+          {{ selected_case.victim_name }}
+        {% else %}
+          {{ selected_case.cas_number }}
+        {% endif %}
+      </span>
+    {% else %}
+      <span style="color:#0f172a;font-weight:600;">Messages</span>
+    {% endif %}
+  </nav>
+  <h1 class="page-title">Messages</h1>
+  <p class="page-subtitle">Communicate securely with the investigating officer handling your case.</p>
+
+  <div class="messages-layout">
+
+    <!-- SIDEBAR -->
+    <div class="inbox-sidebar">
+      <div class="inbox-top">
+        <h2>Conversations</h2>
+        <div class="search-row">
+          <input type="text" id="searchInput" placeholder="Search messages…" />
+        </div>
+      </div>
+      <div class="inbox-list" id="inboxList">
+        {% for case in cases %}
+          <a href="{% url 'messages_case' case.id %}" class="convo-item {% if selected_case and selected_case.id == case.id %}active{% endif %}">
+            {# Avatar: officer initials if assigned, otherwise victim name initials #}
+            <div class="convo-avatar">
+              {% if case.assigned_officer %}
+                {{ case.assigned_officer.get_full_name|slice:":2"|upper }}
+              {% elif case.victim_name %}
+                {{ case.victim_name|slice:":2"|upper }}
+              {% else %}
+                ??
+              {% endif %}
+            </div>
+            <div class="convo-info">
+              <div class="convo-name-row">
+                {# Name: officer if assigned, otherwise victim name #}
+                <span class="convo-name">
+                  {% if case.assigned_officer %}
+                    {{ case.assigned_officer.get_full_name }}
+                  {% elif case.victim_name %}
+                    {{ case.victim_name }}
+                  {% else %}
+                    Unknown Victim
+                  {% endif %}
+                </span>
+                <span class="convo-time">{{ case.updated_at|date:"d M" }}</span>
+              </div>
+              <div class="convo-preview">{{ case.cas_number }} &middot; {{ case.crime_category }}</div>
+            </div>
+            {% if case.unread_count %}<div class="unread-dot"></div>{% endif %}
+          </a>
+        {% empty %}
+          <div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">No conversations yet</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div class="chat-panel">
+      {% if selected_case %}
+
+        <div class="chat-header">
+          <div class="chat-avatar">
+            {% if selected_case.assigned_officer %}
+              {{ selected_case.assigned_officer.get_full_name|slice:":2"|upper }}
+            {% elif selected_case.victim_name %}
+              {{ selected_case.victim_name|slice:":2"|upper }}
+            {% else %}
+              ??
+            {% endif %}
+          </div>
+          <div class="chat-name-block">
+            <div class="name">
+              {% if selected_case.assigned_officer %}
+                {{ selected_case.assigned_officer.get_full_name }}
+              {% elif selected_case.victim_name %}
+                {{ selected_case.victim_name }}
+              {% else %}
+                Unknown Victim
+              {% endif %}
+            </div>
+            <div class="role">
+              {% if selected_case.assigned_officer %}
+                Investigating Officer
+              {% else %}
+                Victim
+              {% endif %}
+              &middot; {{ selected_case.cas_number }}
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-body" id="chatBody">
+          {% if messages %}
+            {% for message in messages %}
+              {% if message.sender == request.user %}
+                <div class="msg-group sent">
+                  <div class="msg-row sent"><div class="bubble">{{ message.content }}</div></div>
+                  <div class="msg-time">{{ message.created_at|date:"d M, H:i" }} <span class="tick">✓✓</span></div>
+                </div>
+              {% else %}
+                <div class="msg-group received">
+                  <div class="msg-row received">
+                    <div class="msg-avatar-sm">{{ message.sender.get_full_name|slice:":2"|upper }}</div>
+                    <div class="bubble">{{ message.content }}</div>
+                  </div>
+                  <div class="msg-time">{{ message.created_at|date:"d M, H:i" }}</div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center;color:#94a3b8;font-size:13px;margin:auto;">No messages yet — send the first one!</div>
+          {% endif %}
+
+          <div class="typing-indicator" id="typingIndicator">
+            <div class="msg-avatar-sm">
+              {% if selected_case.assigned_officer %}
+                {{ selected_case.assigned_officer.get_full_name|slice:":2"|upper }}
+              {% elif selected_case.victim_name %}
+                {{ selected_case.victim_name|slice:":2"|upper }}
+              {% else %}
+                ??
+              {% endif %}
+            </div>
+            <div class="typing-bubble"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <div class="chat-footer">
+          <form id="msgForm" method="POST" action="">
+            {% csrf_token %}
+            <div class="input-wrapper">
+              <textarea id="messageInput" name="content" rows="1" placeholder="Type a message…"></textarea>
+              <button type="submit" class="send-btn" id="sendBtn" disabled>
+                <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+          <div class="secure-notice">
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            All messages are secure and part of the official case record.
+          </div>
+        </div>
+
+      {% else %}
+        <div class="empty-state">
+          <svg width="56" height="56" fill="none" viewBox="0 0 24 24" stroke="#1b3a6b" stroke-width="1.2" opacity="0.25">
+            <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>Select a conversation to start messaging</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{% if selected_case %}
+<div id="js-data"
+     data-case-id="{{ selected_case.id }}"
+     data-user="{{ request.user.username }}"
+     data-initials="{{ request.user.get_full_name|slice:':2'|upper|default:request.user.username|slice:':2'|upper }}"
+     style="display:none"></div>
+{% endif %}
+
+<script>
+// Auto-grow textarea
+const textarea = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+if (textarea) {
+  textarea.addEventListener("input", () => {
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+    sendBtn.disabled = textarea.value.trim() === "";
+  });
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) submitMessage();
+    }
+  });
+}
+
+function scrollToBottom(smooth) {
+  const b = document.getElementById("chatBody");
+  if (!b) return;
+  b.scrollTo({ top: b.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+}
+scrollToBottom(false);
+
+// Sidebar search
+const si = document.getElementById("searchInput");
+if (si) {
+  si.addEventListener("input", () => {
+    const q = si.value.toLowerCase();
+    document.querySelectorAll(".convo-item").forEach((i) => {
+      i.style.display = i.textContent.toLowerCase().includes(q) ? "" : "none";
+    });
+  });
+}
+
+// ── AJAX send + poll for real-time ──
+const jsData = document.getElementById("js-data");
+if (jsData) {
+  const caseId = jsData.dataset.caseId;
+  const currentUser = jsData.dataset.user;
+  const myInitials = jsData.dataset.initials;
+  const chatBody = document.getElementById("chatBody");
+  const typingEl = document.getElementById("typingIndicator");
+  const form = document.getElementById("msgForm");
+
+  let lastId = 0;
+  chatBody.querySelectorAll(".msg-group").forEach(el => {
+    const id = parseInt(el.dataset.msgId || "0");
+    if (id > lastId) lastId = id;
+  });
+
+  function esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function makeBubble(msg) {
+    const isSent = msg.sender === currentUser;
+    const g = document.createElement("div");
+    g.className = `msg-group ${isSent ? "sent" : "received"}`;
+    g.dataset.msgId = msg.id;
+    if (isSent) {
+      g.innerHTML = `<div class="msg-row sent"><div class="bubble">${esc(msg.content)}</div></div><div class="msg-time">${esc(msg.created_at)} <span class="tick">✓✓</span></div>`;
+    } else {
+      g.innerHTML = `<div class="msg-row received"><div class="msg-avatar-sm">${esc(msg.initials)}</div><div class="bubble">${esc(msg.content)}</div></div><div class="msg-time">${esc(msg.created_at)}</div>`;
+    }
+    return g;
+  }
+
+  function submitMessage() {
+    const content = textarea.value.trim();
+    if (!content) return;
+    sendBtn.disabled = true;
+    const formData = new FormData(form);
+    fetch(window.location.href, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === "ok") {
+        textarea.value = "";
+        textarea.style.height = "auto";
+        const emptyMsg = chatBody.querySelector("div[style*='margin:auto']");
+        if (emptyMsg) emptyMsg.remove();
+        const bubble = makeBubble(data.message);
+        chatBody.insertBefore(bubble, typingEl);
+        lastId = data.message.id;
+        scrollToBottom(true);
+      }
+    })
+    .catch(() => {
+      form.submit();
+    });
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    submitMessage();
+  });
+
+  function poll() {
+    fetch(`${window.location.href}?poll=1&after=${lastId}`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.messages && data.messages.length > 0) {
+        const emptyMsg = chatBody.querySelector("div[style*='margin:auto']");
+        if (emptyMsg) emptyMsg.remove();
+        data.messages.forEach(msg => {
+          if (msg.id > lastId) {
+            chatBody.insertBefore(makeBubble(msg), typingEl);
+            lastId = msg.id;
+          }
+        });
+        scrollToBottom(true);
+      }
+    })
+    .catch(() => {});
+  }
+
+  setTimeout(() => {
+    poll();
+    setInterval(poll, 3000);
+  }, 2000);
+}
+</script>
+{% endblock %}

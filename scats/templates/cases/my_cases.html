@@ -1,0 +1,624 @@
+{% extends "base.html" %} {% block content %}
+
+<style>
+  /* ── PAGE-SPECIFIC STYLES ─────────────────────── */
+
+  .page-header {
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.4px;
+  }
+
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  /* Stats strip */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+  }
+
+  .stat-card.accent-blue::before   { background: var(--sky); }
+  .stat-card.accent-amber::before  { background: #f59e0b; }
+  .stat-card.accent-red::before    { background: #ef4444; }
+  .stat-card.accent-green::before  { background: #22c55e; }
+
+  .stat-label-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  .stat-number {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+  }
+
+  .stat-change {
+    font-size: 11.5px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: 2px;
+  }
+
+  .change-up   { color: #16a34a; }
+  .change-down { color: #dc2626; }
+  .change-neutral { color: var(--text-muted); }
+
+  /* Main card wrapper */
+  .cases-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  /* Card toolbar */
+  .card-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Search */
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 320px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    pointer-events: none;
+  }
+
+  .search-input {
+    padding: 9px 12px 9px 34px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--bg);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+
+  .search-input:focus {
+    border-color: var(--sky);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px rgba(59, 125, 216, 0.1);
+  }
+
+  .search-input::placeholder { color: var(--text-light); }
+
+  /* Dropdown filters */
+  .filter-select {
+    padding: 8px 32px 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--bg);
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7a99' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s;
+  }
+
+  .filter-select:focus {
+    border-color: var(--sky);
+    outline: none;
+  }
+
+  /* ── STATUS BADGE SYSTEM ──────────────────────*/
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .status-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-badge.badge-blue {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+  .status-badge.badge-blue::before { background: #3b82f6; }
+
+  .status-badge.badge-amber {
+    background: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .status-badge.badge-amber::before { background: #f59e0b; }
+
+  .status-badge.badge-red {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  .status-badge.badge-red::before { background: #ef4444; }
+
+  .status-badge.badge-gray {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border: 1px solid rgba(107, 114, 128, 0.2);
+  }
+  .status-badge.badge-gray::before { background: #9ca3af; }
+
+  .status-badge.badge-green {
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803d;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .status-badge.badge-green::before { background: #22c55e; }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table thead tr {
+    background: #f8faff;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .data-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    padding: 12px 16px;
+    white-space: nowrap;
+  }
+
+  .data-table th:first-child  { padding-left: 20px; }
+  .data-table th:last-child   { padding-right: 20px; text-align: right; }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+
+  .data-table tbody tr:last-child  { border-bottom: none; }
+  .data-table tbody tr:hover       { background: #f5f8ff; }
+
+  .data-table td {
+    padding: 13px 16px;
+    font-size: 13.5px;
+    color: var(--text-main);
+    vertical-align: middle;
+  }
+
+  .data-table td:first-child { padding-left: 20px; }
+  .data-table td:last-child  { padding-right: 20px; text-align: right; }
+
+  .cas-link {
+    font-family: "DM Mono", monospace;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--sky);
+    text-decoration: none;
+    letter-spacing: 0.3px;
+  }
+
+  .cas-link:hover { text-decoration: underline; }
+
+  .crime-text {
+    font-size: 13.5px;
+    color: var(--text-main);
+    font-weight: 500;
+  }
+
+  .date-text {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state svg {
+    opacity: 0.25;
+    margin-bottom: 14px;
+  }
+
+  .empty-state p { font-size: 14px; }
+
+  /* Card footer / pagination */
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: #fafbfd;
+  }
+
+  .footer-count {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .page-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 12.5px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .page-btn:hover {
+    border-color: var(--sky);
+    color: var(--sky);
+  }
+
+  .view-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+    text-decoration: none;
+    padding: 5px 2px;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .view-link:hover {
+    color: var(--sky);
+    border-bottom-color: var(--sky);
+  }
+
+  .rows-select {
+    padding: 5px 24px 5px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: "DM Sans", sans-serif;
+    font-size: 12.5px;
+    color: var(--text-main);
+    background: var(--surface);
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='%236b7a99' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+  }
+
+  /* Responsive: stack stats on smaller screens */
+  @media (max-width: 900px) {
+    .stats-strip {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 500px) {
+    .stats-strip {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+
+
+<div class="page-header">
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div>
+      <h1 class="page-title">Assigned Cases</h1>
+      <p class="page-subtitle">Cases assigned to you at Soweto Police Station</p>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center; flex-shrink:0">
+      <button class="btn btn-secondary">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="stats-strip">
+
+  <!-- Total Assigned -->
+  <div class="stat-card accent-blue">
+    <span class="stat-label-text">Total Assigned</span>
+    <span class="stat-number">{{ cases|length }}</span>
+    <span class="stat-change change-up">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+      8% from last week
+    </span>
+  </div>
+
+  <!-- Under Investigation -->
+  <div class="stat-card accent-amber">
+    <span class="stat-label-text">Under Investigation</span>
+    <span class="stat-number">{{ under_investigation_count|default:3 }}</span>
+    <span class="stat-change change-neutral">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+      Active cases
+    </span>
+  </div>
+
+  <!-- Stalled -->
+  <div class="stat-card accent-red">
+    <span class="stat-label-text">Stalled</span>
+    <span class="stat-number">{{ stalled_count|default:0 }}</span>
+    <span class="stat-change change-down">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      Needs attention
+    </span>
+  </div>
+
+  <!-- Cases Closed -->
+  <div class="stat-card accent-green">
+    <span class="stat-label-text">Cases Closed</span>
+    <span class="stat-number">{{ closed_count|default:1 }}</span>
+    <span class="stat-change change-up">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+      This month
+    </span>
+  </div>
+
+</div>
+
+
+
+<!-- ── MAIN CASES CARD ────────────────────────── -->
+<div class="cases-card">
+
+  <!-- Toolbar -->
+  <div class="card-toolbar">
+    <div class="toolbar-left" style="flex:1">
+      <div class="search-wrap" style="max-width:none; flex:1">
+        <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" class="search-input" placeholder="Search by CAS number, crime, status…"/>
+      </div>
+
+      <select class="filter-select" style="flex-shrink:0">
+        <option>All Stall Statuses</option>
+        <option>Active</option>
+        <option>Stalled</option>
+      </select>
+
+      <select class="filter-select" style="flex-shrink:0">
+        <option>All Crime Categories</option>
+        <option>Murder</option>
+        <option>Aggravated Robbery</option>
+        <option>Assault GBH</option>
+        <option>Theft</option>
+        <option>Fraud</option>
+        <option>House Robbery</option>
+        <option>Malicious Damage</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>CAS Number
+          <svg style="display:inline;vertical-align:middle;margin-left:3px" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+        </th>
+        <th>Crime Category
+          <svg style="display:inline;vertical-align:middle;margin-left:3px" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+        </th>
+        <th>Status
+          <svg style="display:inline;vertical-align:middle;margin-left:3px" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+        </th>
+        <th>Stall Status
+          <svg style="display:inline;vertical-align:middle;margin-left:3px" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+        </th>
+        <th>Last Activity
+          <svg style="display:inline;vertical-align:middle;margin-left:3px" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </th>
+        <th>Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for case in cases %}
+      <tr>
+
+        <!-- CAS Number -->
+        <td>
+          <a href="{% url 'case_detail' case.id %}" class="cas-link">{{ case.cas_number }}</a>
+        </td>
+
+        <!-- Crime -->
+        <td>
+          <span class="crime-text">{{ case.crime_category }}</span>
+        </td>
+
+        <!-- Status badge -->
+        <td>
+          {% with s=case.status|upper %}
+            {% if s == "UNDER INVESTIGATION" %}
+              <span class="status-badge badge-amber">Under Investigation</span>
+            {% elif s == "EVIDENCE COLLECTED" %}
+              <span class="status-badge badge-blue">Evidence Collected</span>
+            {% elif s == "OPEN" %}
+              <span class="status-badge badge-blue">Open</span>
+            {% elif s == "CASE CLOSED" or s == "CLOSED" %}
+              <span class="status-badge badge-gray">Case Closed</span>
+            {% elif s == "STALLED" %}
+              <span class="status-badge badge-red">Stalled</span>
+            {% elif s == "AT RISK" %}
+              <span class="status-badge badge-red">At Risk</span>
+            {% else %}
+              <span class="status-badge badge-blue">{{ case.status }}</span>
+            {% endif %}
+          {% endwith %}
+        </td>
+
+        <!-- Stall Status badge -->
+        <td>
+          {% if case.stall_status == "Stalled" %}
+            <span class="status-badge badge-red">Stalled</span>
+          {% else %}
+            <span class="status-badge badge-green">Active</span>
+          {% endif %}
+        </td>
+
+        <!-- Last Activity -->
+        <td>
+          <span class="date-text">
+            {% if case.updated_at %}
+              {{ case.updated_at|date:"d M Y" }}
+            {% else %}
+              {{ case.created_at|date:"d M Y" }}
+            {% endif %}
+          </span>
+        </td>
+
+        <!-- Action -->
+        <td>
+          <a href="{% url 'case_detail' case.id %}" class="view-link">View</a>
+        </td>
+
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6">
+          <div class="empty-state">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
+            </svg>
+            <p>No cases assigned to you yet.</p>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Card footer -->
+  <div class="card-footer">
+    <div style="display:flex; align-items:center; gap:8px">
+      <span class="footer-count">Rows per page:</span>
+      <select class="rows-select">
+        <option>10</option>
+        <option>25</option>
+        <option>50</option>
+      </select>
+      <span class="footer-count">Showing 1–{{ cases|length }} of {{ cases|length }} results</span>
+    </div>
+
+    <div class="pagination">
+      <button class="page-btn">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="footer-count" style="padding:0 8px">Page 1 of 1</span>
+      <button class="page-btn">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,586 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCATS – SAPS Case Accountability and Transparency System</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        /* Updated to match the deep logo blue */
+        --navy: #0a1628;
+        --navy-mid: #0f2040;
+        --navy-light: #1a3560;
+        --gold: #c9a84c;
+        --gold-light: #e8c76a;
+        --sky: #2563b8;
+        --sky-light: #3b7dd8;
+        --bg: #f0f3f8;
+        --surface: #ffffff;
+        --border: #dde3ef;
+        --text-main: #0a1628;
+        --text-muted: #6b7a99;
+        --text-light: #9aa3bb;
+        --green: #166534;
+        --green-bg: #dcfce7;
+        --red: #991b1b;
+        --red-bg: #fee2e2;
+        --amber: #92400e;
+        --amber-bg: #fef3c7;
+        --blue: #1d4ed8;
+        --blue-bg: #dbeafe;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow-sm:
+          0 1px 3px rgba(10, 22, 40, 0.08), 0 1px 2px rgba(10, 22, 40, 0.06);
+        --shadow:
+          0 4px 12px rgba(10, 22, 40, 0.1), 0 2px 6px rgba(10, 22, 40, 0.06);
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── HEADER ────────────────────────────────── */
+      .site-header {
+        background: var(--navy);
+        border-bottom: 3px solid var(--gold);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-inner {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: 64px;
+        padding: 0 24px;
+      }
+
+      /* Logo block — image only */
+      .logo-block {
+        display: flex;
+        align-items: center;
+        padding-right: 24px;
+        border-right: 1px solid rgba(255, 255, 255, 0.12);
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+
+      .logo-img {
+        width: 200px;
+        height: 56px;
+        object-fit: contain;
+        flex-shrink: 0;
+        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+      }
+
+      /* Primary nav */
+      .primary-nav {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        height: 100%;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 16px;
+        color: rgba(255, 255, 255, 0.65);
+        text-decoration: none;
+        font-size: 13.5px;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -3px;
+        transition:
+          color 0.15s,
+          border-color 0.15s,
+          background 0.15s;
+        white-space: nowrap;
+      }
+
+      .nav-item svg {
+        flex-shrink: 0;
+        opacity: 0.7;
+        transition: opacity 0.15s;
+      }
+
+      .nav-item:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .nav-item:hover svg {
+        opacity: 1;
+      }
+
+      .nav-item.active {
+        color: var(--gold-light);
+        border-bottom-color: var(--gold);
+        background: rgba(201, 168, 76, 0.08);
+      }
+      .nav-item.active svg {
+        opacity: 1;
+      }
+
+      /* User / right section */
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding-left: 12px;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+
+      .user-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        padding: 6px 12px 6px 6px;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+      }
+      .user-pill:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .user-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--gold);
+        color: var(--navy);
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      /* Stack name + rank */
+      .user-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+      }
+
+      .user-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      /* Rank shown below name */
+      .user-rank {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--gold);
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+      }
+
+      .logout-link {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.15s;
+      }
+      .logout-link:hover {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      /* Divider between nav and user controls */
+      .header-divider {
+        width: 1px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.12);
+        margin: 0 4px;
+        flex-shrink: 0;
+      }
+
+      /* ── MAIN CONTENT ──────────────────────────── */
+      .page-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .content-area {
+        flex: 1;
+        padding: 28px 28px;
+        max-width: 1400px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      /* ── FOOTER ────────────────────────────────── */
+      .site-footer {
+        /* Match the same deep navy as the header */
+        background: var(--navy);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 14px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .footer-left {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .footer-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.25);
+      }
+
+      .footer-shield {
+        width: 14px;
+        height: 14px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+
+      /* ── REUSABLE COMPONENTS ───────────────────── */
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Inputs */
+      .input,
+      select.input {
+        padding: 9px 12px;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 13.5px;
+        color: var(--text-main);
+        background: var(--surface);
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+        width: 100%;
+      }
+
+      .input:focus,
+      select.input:focus {
+        border-color: var(--sky);
+        box-shadow: 0 0 0 3px rgba(37, 99, 184, 0.12);
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 16px;
+        border-radius: var(--radius);
+        font-family: "DM Sans", sans-serif;
+        font-size: 13.5px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.15s;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background: var(--sky);
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #1a4f9e;
+        box-shadow: 0 3px 10px rgba(37, 99, 184, 0.3);
+      }
+
+      .btn-secondary {
+        background: var(--surface);
+        color: var(--text-main);
+        border: 1.5px solid var(--border);
+      }
+      .btn-secondary:hover {
+        background: var(--bg);
+        border-color: #bcc5d9;
+      }
+
+      .btn-danger {
+        background: #dc2626;
+        color: white;
+      }
+      .btn-danger:hover {
+        background: #b91c1c;
+      }
+
+      /* Status badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+      }
+
+      .badge::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .badge-blue { background: var(--blue-bg); color: var(--blue); }
+      .badge-blue::before { background: var(--blue); }
+      .badge-green { background: var(--green-bg); color: var(--green); }
+      .badge-green::before { background: var(--green); }
+      .badge-red { background: var(--red-bg); color: var(--red); }
+      .badge-red::before { background: var(--red); }
+      .badge-amber { background: var(--amber-bg); color: var(--amber); }
+      .badge-amber::before { background: #d97706; }
+      .badge-gray { background: #f1f5f9; color: #475569; }
+      .badge-gray::before { background: #94a3b8; }
+
+      /* Tables */
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .data-table thead tr {
+        border-bottom: 2px solid var(--border);
+      }
+
+      .data-table th {
+        text-align: left;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        padding: 0 16px 12px 16px;
+      }
+
+      .data-table th:first-child { padding-left: 20px; }
+      .data-table th:last-child  { padding-right: 20px; }
+
+      .data-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.12s;
+      }
+
+      .data-table tbody tr:last-child { border-bottom: none; }
+      .data-table tbody tr:hover { background: #f8faff; }
+
+      .data-table td {
+        padding: 14px 16px;
+        font-size: 13.5px;
+        color: var(--text-main);
+        vertical-align: middle;
+      }
+
+      .data-table td:first-child { padding-left: 20px; }
+      .data-table td:last-child  { padding-right: 20px; }
+
+      /* Section headers */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.3px;
+      }
+
+      .section-sub {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* Stat cards */
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -1px;
+        line-height: 1;
+        margin-bottom: 8px;
+      }
+
+      .stat-delta {
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      .delta-up { color: #16a34a; }
+      .delta-down { color: #dc2626; }
+    </style>
+  </head>
+  <body>
+    <!-- ── HEADER ──────────────────────────────────────── -->
+    <header class="site-header">
+      <div class="header-inner">
+
+        <!-- Logo: image only -->
+        <a href="#" class="logo-block">
+          <img
+            src="{% static 'images/scats_logo.jpeg' %}"
+            alt="SCATS Logo"
+            class="logo-img"
+          />
+        </a>
+
+        <!-- Spacer -->
+        <div style="flex: 1"></div>
+
+        <!-- Primary navigation -->
+        <nav class="primary-nav">
+          <a
+            href="{% url 'my_cases' %}"
+            class="nav-item{% if request.resolver_match.url_name == 'my_cases' %} active{% endif %}"
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 12h6M9 16h6M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
+            </svg>
+            My Cases
+          </a>
+          <a
+            href="{% url 'messages' %}"
+            class="nav-item{% if request.resolver_match.url_name == 'messages' %} active{% endif %}"
+          >
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Messages
+          </a>
+        </nav>
+
+        <!-- Divider -->
+        <div class="header-divider"></div>
+
+        <!-- User controls -->
+        <div class="header-right">
+          <div class="user-pill">
+            <div class="user-avatar">
+              {{ request.user.get_full_name|slice:":2"|upper|default:"U" }}
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ request.user.get_full_name|default:"User" }}</span>
+              <!-- Pull rank from the related Detective profile -->
+              {% if request.user.detective %}
+                <span class="user-rank">{{ request.user.detective.rank }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <form method="post" action="{% url 'logout' %}" style="display:inline; margin:0">
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="logout-link"
+              style="background:none; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; padding:0"
+            >
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+              </svg>
+              Logout
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ── PAGE CONTENT ────────────────────────────────── -->
+    <main class="page-wrapper">
+      <div class="content-area">{% block content %}{% endblock %}</div>
+    </main>
+
+    <!-- ── FOOTER ──────────────────────────────────────── -->
+    <footer class="site-footer">
+      <span class="footer-left">
+        &copy; 2024 South African Police Service &nbsp;·&nbsp; SCATS v2.1
+      </span>
+      <div class="footer-right">
+        <svg class="footer-shield" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Your information is secure and confidential
+      </div>
+    </footer>
+  </body>
+</html>

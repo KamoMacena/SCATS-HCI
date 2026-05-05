@@ -1,0 +1,847 @@
+{% extends "base.html" %}
+{% block messages %}{% endblock %}
+{% block content %}
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --navy: #0f172a;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --blue-border: #bfdbfe;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-border: #fca5a5;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --green-border: #86efac;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --amber-border: #fcd34d;
+    --grey-50: #f8fafc;
+    --grey-100: #f1f5f9;
+    --grey-200: #e2e8f0;
+    --grey-300: #cbd5e1;
+    --grey-400: #94a3b8;
+    --grey-500: #64748b;
+    --grey-600: #475569;
+    --grey-700: #334155;
+    --grey-900: #0f172a;
+    --radius: 10px;
+    --radius-sm: 7px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --transition: 0.15s ease;
+    --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "DM Mono", monospace;
+  }
+
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font); background:var(--grey-50); color:var(--grey-900); font-size:14px; line-height:1.5; }
+
+  /* ── TOAST NOTIFICATIONS ──────────────────────────────────── */
+  #toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
+    min-width: 300px;
+    max-width: 380px;
+    pointer-events: all;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s ease;
+    border-left: 4px solid var(--blue);
+  }
+  .toast.show { transform: translateX(0); opacity: 1; }
+  .toast.toast-success { border-left-color: var(--green); }
+  .toast.toast-error { border-left-color: var(--red); }
+  .toast.toast-warning { border-left-color: var(--amber); }
+  .toast-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: var(--blue-light); color: var(--blue);
+  }
+  .toast.toast-success .toast-icon { background: var(--green-light); color: var(--green); }
+  .toast.toast-error .toast-icon { background: var(--red-light); color: var(--red); }
+  .toast.toast-warning .toast-icon { background: var(--amber-light); color: var(--amber); }
+  .toast-body { flex: 1; min-width: 0; }
+  .toast-title { font-size: 13px; font-weight: 700; color: var(--grey-900); margin-bottom: 2px; }
+  .toast-msg { font-size: 12px; color: var(--grey-500); line-height: 1.4; }
+  .toast-close {
+    background: none; border: none; cursor: pointer; color: var(--grey-400);
+    padding: 2px; line-height: 1; flex-shrink: 0; margin-top: 1px;
+  }
+  .toast-close:hover { color: var(--grey-700); }
+  .toast-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--blue);
+    border-radius: 0 0 0 10px;
+    width: 100%;
+    transform-origin: left;
+    animation: progress-shrink 4s linear forwards;
+  }
+  .toast.toast-success .toast-progress { background: var(--green); }
+  .toast.toast-error .toast-progress { background: var(--red); }
+  .toast.toast-warning .toast-progress { background: var(--amber); }
+  .toast { position: relative; overflow: hidden; }
+  @keyframes progress-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  /* ── BREADCRUMB ─────────────────────────────────────────────── */
+  .breadcrumb { display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:16px; flex-wrap:wrap; }
+  .breadcrumb a { color:var(--grey-500); text-decoration:none; font-weight:500; transition:color var(--transition); }
+  .breadcrumb a:hover { color:var(--blue); }
+  .breadcrumb .sep { color:var(--grey-300); }
+  .breadcrumb .current { color:var(--grey-900); font-weight:600; }
+
+  /* ── PAGE HEADER ────────────────────────────────────────────── */
+  .page-header {
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; margin-bottom:6px; flex-wrap:wrap;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .page-header h1 { font-size:28px; font-weight:800; letter-spacing:-0.5px; line-height:1.15; }
+  .page-sub { font-size:13px; color:var(--grey-500); margin-bottom:18px; }
+  .more-actions { display: flex; align-items: center; gap: 10px; }
+  .more-actions-btn {
+    background: #fff; border: 1px solid var(--grey-200);
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; font-family: var(--font);
+    color: var(--grey-600); cursor: pointer; display: flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-sm); transition: all var(--transition);
+  }
+  .more-actions-btn:hover { background: var(--grey-50); border-color: var(--grey-300); }
+  .kebab-btn {
+    background: #fff; border: 1px solid var(--grey-200);
+    border-radius: 8px; padding: 8px 10px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--grey-500); box-shadow: var(--shadow-sm); transition: all var(--transition);
+  }
+  .kebab-btn:hover { background: var(--grey-50); color: var(--grey-900); }
+
+  /* ── BADGE ─────────────────────────────────────────────────── */
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:5px 13px; border-radius:20px; font-size:12px; font-weight:700; border:1px solid transparent; white-space:nowrap; }
+  .badge-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .badge-investigating { background:var(--blue-light); color:var(--blue); border-color:var(--blue-border); }
+  .badge-investigating .badge-dot { background:var(--blue); }
+  .badge-active { background:var(--green-light); color:var(--green); border-color:var(--green-border); }
+  .badge-active .badge-dot { background:var(--green); }
+  .badge-stalled { background:var(--red-light); color:var(--red); border-color:var(--red-border); }
+  .badge-stalled .badge-dot { background:var(--red); }
+  .badge-closed { background:var(--grey-100); color:var(--grey-600); border-color:var(--grey-200); }
+  .badge-closed .badge-dot { background:var(--grey-400); }
+
+  /* ── ACTION BAR ─────────────────────────────────────────────── */
+  .action-bar { display:flex; align-items:center; gap:10px; margin-bottom:22px; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; font-family:var(--font); cursor:pointer; border:1px solid transparent; text-decoration:none; line-height:1; transition:all var(--transition); background:none; }
+  .btn:hover { opacity:0.85; transform:translateY(-1px); }
+  .btn:active { transform:none; }
+  .btn-primary { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .btn-outline { background:#fff; color:var(--grey-600); border-color:var(--grey-200); box-shadow:var(--shadow-sm); }
+  .btn-danger { background:var(--grey-100); color:var(--grey-400); border-color:var(--grey-200); cursor:not-allowed; pointer-events:none; }
+  .btn-danger-active { background:var(--red-light); color:var(--red); border-color:var(--red-border); }
+  .btn-submit { background:var(--navy); color:#fff; border-color:var(--navy); padding:10px 24px; }
+
+  /* ── TABS ───────────────────────────────────────────────────── */
+  .tabs-wrapper { background:#fff; border-radius:var(--radius); border:1px solid var(--grey-200); box-shadow:var(--shadow-sm); overflow:hidden; }
+  .tabs-nav { display:flex; border-bottom:1px solid var(--grey-200); background:#fff; padding:0 8px; gap: 4px; }
+  .tab-btn {
+    display:flex; align-items:center; gap:8px; padding:14px 16px;
+    font-size:13px; font-weight:600; font-family:var(--font);
+    color:var(--grey-500); background:none; border:none;
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+    cursor:pointer; transition:all var(--transition); white-space:nowrap;
+  }
+  .tab-btn:hover { color:var(--grey-900); }
+  .tab-btn.active { color:var(--navy); border-bottom-color:var(--navy); }
+  .tab-panel { display:none; padding:28px; }
+  .tab-panel.active { display:block; }
+
+  /* ── CASE OVERVIEW ──────────────────────────────────────────── */
+  .overview-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:1px solid var(--grey-200); border-radius:var(--radius-sm); overflow:hidden; }
+  @media(max-width:768px){ .overview-grid { grid-template-columns:1fr 1fr; } }
+  @media(max-width:480px){ .overview-grid { grid-template-columns:1fr; } }
+  .overview-cell { padding:16px 20px; border-right:1px solid var(--grey-200); }
+  .overview-cell:last-child { border-right:none; }
+  .overview-cell:nth-child(n+6) { border-top:1px solid var(--grey-200); }
+  .field-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--grey-400); margin-bottom:6px; }
+  .field-value { font-size:13px; font-weight:600; color:var(--grey-900); display:flex; align-items:center; gap:6px; }
+  .status-check { color:var(--green); }
+
+  /* ── LIFECYCLE ──────────────────────────────────────────────── */
+  .lifecycle-section { margin-top:28px; }
+  .lifecycle-title { font-size:13px; font-weight:700; color:var(--grey-700); margin-bottom:14px; text-transform:uppercase; letter-spacing:0.06em; }
+  .lifecycle-list { list-style:none; }
+  .lifecycle-item { display:flex; align-items:flex-start; gap:14px; padding:13px 0; border-bottom:1px solid var(--grey-100); }
+  .lifecycle-item:last-child { border-bottom:none; }
+  .lc-icon-wrap { display:flex; flex-direction:column; align-items:center; gap:0; }
+  .lc-icon { width:28px; height:28px; border-radius:50%; border:2px solid var(--grey-300); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lifecycle-item.done .lc-icon { background:var(--green); border-color:var(--green); color:#fff; }
+  .lifecycle-item.current .lc-icon { background:var(--amber-light); border-color:var(--amber); color:var(--amber); box-shadow:0 0 0 3px rgba(217,119,6,0.12); }
+  .lifecycle-item.pending .lc-icon { background:#fff; border-color:var(--grey-200); color:var(--grey-300); }
+  .lc-content { flex:1; }
+  .lc-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .lc-name { font-size:13px; font-weight:700; color:var(--grey-900); }
+  .lifecycle-item.pending .lc-name { color:var(--grey-400); }
+  .lc-note { font-size:12px; color:var(--grey-500); margin-top:3px; }
+  .lc-meta-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .lc-avatar { width:24px; height:24px; border-radius:50%; background:var(--navy); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .lc-role { font-size:11px; color:var(--grey-400); font-weight:500; }
+  .lc-date { font-size:11px; color:var(--grey-400); font-weight:500; font-family:var(--mono); }
+  .lc-connector { width:2px; height:14px; background:var(--grey-200); margin:3px 0; }
+  .lifecycle-item.done .lc-connector { background:var(--green-border); }
+
+  .closed-notice {
+    display:flex; align-items:center; gap:10px;
+    background:var(--green-light); border:1px solid var(--green-border);
+    border-radius:var(--radius-sm); padding:12px 16px;
+    font-size:13px; font-weight:600; color:var(--green);
+    margin-top:20px;
+  }
+
+  /* ── LOG UPDATE ─────────────────────────────────────────────── */
+  .log-layout { display:grid; grid-template-columns:1fr 280px; gap:28px; }
+  @media(max-width:768px){ .log-layout { grid-template-columns:1fr; } }
+  .form-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--grey-100); }
+  .form-header-title { font-size:15px; font-weight:700; color:var(--grey-900); }
+  .audit-pill { display:inline-flex; align-items:center; gap:6px; background:var(--grey-100); border:1px solid var(--grey-200); border-radius:20px; padding:4px 11px; font-size:11px; font-weight:600; color:var(--grey-500); }
+  .info-notice {
+    display:flex; align-items:flex-start; gap:9px;
+    background:var(--blue-light); border:1px solid var(--blue-border);
+    border-radius:var(--radius-sm); padding:11px 14px;
+    font-size:12px; color:var(--blue); font-weight:500;
+    margin-bottom:20px;
+  }
+  .form-label { display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--grey-600); margin-bottom:6px; }
+  .form-label .req { color:var(--red); margin-left:2px; }
+  .form-group { margin-bottom:18px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+  @media(max-width:560px){ .form-row { grid-template-columns:1fr; } }
+  .input { width:100%; padding:10px 13px; border:1.5px solid var(--grey-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); color:var(--grey-900); background:#fff; outline:none; appearance:none; transition:border-color var(--transition),box-shadow var(--transition); }
+  .input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+  textarea.input { resize:vertical; min-height:130px; line-height:1.6; }
+  .char-count { text-align:right; font-size:11px; color:var(--grey-400); margin-top:4px; }
+  .attach-zone {
+    border:1.5px dashed var(--grey-300); border-radius:var(--radius-sm);
+    padding:16px 18px; display:flex; align-items:center; gap:12px;
+    background:var(--grey-50); cursor:pointer; transition:all var(--transition);
+    margin-bottom:18px;
+  }
+  .attach-zone:hover { border-color:var(--blue); background:var(--blue-light); }
+  .attach-icon { color:var(--grey-400); }
+  .attach-text { flex:1; }
+  .attach-title { font-size:13px; font-weight:600; color:var(--grey-700); }
+  .attach-sub { font-size:11px; color:var(--grey-400); }
+  .form-footer { display:flex; align-items:center; gap:12px; }
+  .btn-cancel { background:#fff; color:var(--grey-600); border-color:var(--grey-200); padding:10px 20px; }
+
+  /* Sidebar guidelines */
+  .guidelines-card { background:var(--grey-50); border:1px solid var(--grey-200); border-radius:var(--radius-sm); padding:18px; }
+  .guidelines-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--grey-600); margin-bottom:14px; }
+  .guideline-item { display:flex; align-items:flex-start; gap:10px; margin-bottom:13px; }
+  .guideline-item:last-child { margin-bottom:0; }
+  .guideline-icon { width:28px; height:28px; border-radius:6px; background:#fff; border:1px solid var(--grey-200); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--grey-500); }
+  .guideline-text-title { font-size:12px; font-weight:700; color:var(--grey-900); margin-bottom:1px; }
+  .guideline-text-sub { font-size:11px; color:var(--grey-500); line-height:1.4; }
+  .need-help-card { background:var(--amber-light); border:1px solid var(--amber-border); border-radius:var(--radius-sm); padding:14px; margin-top:14px; }
+  .need-help-title { font-size:12px; font-weight:700; color:var(--amber); margin-bottom:3px; }
+  .need-help-text { font-size:11px; color:var(--grey-600); }
+
+  /* ── TIMELINE ───────────────────────────────────────────────── */
+  .tl-toolbar { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid var(--grey-100); }
+  .tl-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border:1px solid var(--grey-200); border-radius:7px; background:#fff; font-size:12px; font-weight:600; font-family:var(--font); color:var(--grey-600); cursor:pointer; transition:all var(--transition); }
+  .tl-btn:hover { border-color:var(--grey-300); color:var(--grey-900); }
+
+  .tl-list { display:flex; flex-direction:column; gap:0; }
+  .tl-item { display:grid; grid-template-columns:90px 32px 1fr; gap:0 14px; align-items:start; }
+  .tl-date-col { text-align:right; padding-top:4px; }
+  .tl-date { font-size:12px; font-weight:700; color:var(--grey-900); font-family:var(--mono); }
+  .tl-time { font-size:11px; color:var(--grey-400); font-family:var(--mono); }
+  .tl-spine { display:flex; flex-direction:column; align-items:center; }
+  .tl-dot { width:14px; height:14px; border-radius:50%; background:var(--blue); border:2.5px solid #fff; box-shadow:0 0 0 2px var(--blue); flex-shrink:0; margin-top:4px; }
+  .tl-dot.system { background:var(--grey-400); box-shadow:0 0 0 2px var(--grey-400); }
+  .tl-line { width:2px; background:var(--grey-200); flex:1; margin:4px 0; min-height:30px; }
+  .tl-item:last-child .tl-line { display:none; }
+  .tl-content { padding:0 0 24px; }
+  .tl-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+  .tl-action { font-size:13px; font-weight:700; color:var(--grey-900); }
+  .tl-tags { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .tl-tag { font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .tl-tag-detective { background:var(--blue-light); color:var(--blue); }
+  .tl-tag-system { background:var(--grey-100); color:var(--grey-500); }
+  .tl-desc { font-size:13px; color:var(--grey-600); line-height:1.6; }
+  .tl-empty { text-align:center; color:var(--grey-400); font-size:13px; padding:36px 0; }
+
+  @media(max-width:640px){
+    .tabs-nav { overflow-x:auto; }
+    .tab-btn { padding:12px 12px; font-size:12px; }
+    .tab-panel { padding:20px 16px; }
+    .tl-item { grid-template-columns:72px 28px 1fr; }
+  }
+</style>
+
+<!-- SVG SPRITES -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="icon-upload" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 13V4m0 0L7 7m3-3 3 3"/><path d="M3 14v1a3 3 0 003 3h8a3 3 0 003-3v-1"/>
+  </symbol>
+  <symbol id="icon-message" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H6l-4 3V6z"/>
+  </symbol>
+  <symbol id="icon-x-circle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M7 7l6 6m0-6l-6 6"/>
+  </symbol>
+  <symbol id="icon-clipboard" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="4" width="10" height="14" rx="2"/><path d="M8 4V3a1 1 0 011-1h2a1 1 0 011 1v1"/><path d="M8 9h4M8 12h2"/>
+  </symbol>
+  <symbol id="icon-edit" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 3l4 4L6 18H2v-4L13 3z"/>
+  </symbol>
+  <symbol id="icon-clock" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M10 6v4l2.5 2.5"/>
+  </symbol>
+  <symbol id="icon-lifecycle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 10a6 6 0 106-6"/><path d="M6 7l-2-3-3 2"/>
+  </symbol>
+  <symbol id="icon-lock" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="9" width="10" height="8" rx="2"/><path d="M7 9V6a3 3 0 016 0v3"/>
+  </symbol>
+  <symbol id="icon-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 10l4.5 4.5L16 6"/>
+  </symbol>
+  <symbol id="icon-hourglass" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3h10M5 17h10M7 3v4l6 6v4M13 3v4L7 13v4"/>
+  </symbol>
+  <symbol id="icon-circle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+    <circle cx="10" cy="10" r="7"/>
+  </symbol>
+  <symbol id="icon-breadcrumb-arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 2l4 4-4 4"/>
+  </symbol>
+  <symbol id="icon-filter" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 5h14M6 10h8M9 15h2"/>
+  </symbol>
+  <symbol id="icon-download" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 4v9m0 0l-3-3m3 3l3-3M3 16h14"/>
+  </symbol>
+  <symbol id="icon-print" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 4h8v4H6zM4 8h12v8H4zm2 4h8"/>
+  </symbol>
+  <symbol id="icon-info" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M10 9v5M10 7v.01"/>
+  </symbol>
+  <symbol id="icon-attach" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M16.5 10.5l-7 7a4.95 4.95 0 01-7-7l7-7a3.5 3.5 0 015 5l-7 7a2 2 0 01-2.83-2.83l6.5-6.5"/>
+  </symbol>
+  <symbol id="icon-kebab" viewBox="0 0 20 20" fill="currentColor">
+    <circle cx="10" cy="5" r="1.3"/><circle cx="10" cy="10" r="1.3"/><circle cx="10" cy="15" r="1.3"/>
+  </symbol>
+  <symbol id="icon-x" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M5 5l10 10M15 5L5 15"/>
+  </symbol>
+  <symbol id="icon-tick-circle" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="10" r="8"/><path d="M6.5 10l2.5 2.5 4-5"/>
+  </symbol>
+  <symbol id="icon-warning" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.1 3.5L2 16h16L10.9 3.5a1 1 0 00-1.8 0z"/><path d="M10 9v4M10 14.5v.5"/>
+  </symbol>
+</svg>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- Django messages passed safely as JSON — no template tags inside <script> -->
+<script id="django-messages-data" type="application/json">
+  [{% for message in messages %}{"type":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+</script>
+
+<!-- BREADCRUMB -->
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'my_cases' %}">My Cases</a>
+  <svg width="12" height="12" class="sep"><use href="#icon-breadcrumb-arrow"/></svg>
+  <span class="current">{{ case.cas_number }}</span>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="header-left">
+    <h1>{{ case.cas_number }}</h1>
+    {% if case.status == "Investigating" %}
+      <span class="badge badge-investigating"><span class="badge-dot"></span>{{ case.status }}</span>
+    {% elif case.status == "CASE CLOSED" or case.status == "Closed" %}
+      <span class="badge badge-closed"><span class="badge-dot"></span>Closed</span>
+    {% elif case.status == "Stalled" %}
+      <span class="badge badge-stalled"><span class="badge-dot"></span>{{ case.status }}</span>
+    {% else %}
+      <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+    {% endif %}
+  </div>
+  <div class="more-actions">
+    <button class="more-actions-btn" onclick="showToast('info','More Actions','Additional case actions coming soon.')">
+      More actions
+    </button>
+    <button class="kebab-btn" onclick="showToast('info','Options','Case options menu coming soon.')">
+      <svg width="16" height="16"><use href="#icon-kebab"/></svg>
+    </button>
+  </div>
+</div>
+
+<p class="page-sub">{{ case.crime_category|upper }}&nbsp;&middot;&nbsp;Registered {{ case.created_at|date:"d M Y, H:i" }}</p>
+
+<!-- ACTION BAR -->
+<div class="action-bar">
+  <a href="{% url 'upload_evidence' case.id %}" class="btn btn-primary" onclick="scheduleToast('success','Evidence Upload','Evidence upload page opened.')">
+    <svg width="15" height="15"><use href="#icon-upload"/></svg>
+    Upload Evidence
+  </a>
+  <a href="{% url 'messages_case' case.id %}" class="btn btn-outline">
+    <svg width="15" height="15"><use href="#icon-message"/></svg>
+    Messages
+  </a>
+  {% if case.status == "CASE CLOSED" or case.status == "Closed" %}
+    <button type="button" class="btn btn-danger" disabled>
+      <svg width="15" height="15"><use href="#icon-x-circle"/></svg>
+      Case Closed
+    </button>
+  {% else %}
+    <a href="{% url 'close_case' case.id %}" class="btn btn-outline"
+       onclick="scheduleToast('warning','Close Case','You are about to close this case. This action is permanent.')">
+      <svg width="15" height="15"><use href="#icon-x-circle"/></svg>
+      Close Case
+    </a>
+  {% endif %}
+</div>
+
+<!-- TABBED CONTENT -->
+<div class="tabs-wrapper">
+  <nav class="tabs-nav" role="tablist" aria-label="Case sections">
+    <button class="tab-btn active" role="tab" id="tab-overview" aria-controls="panel-overview" aria-selected="true" onclick="switchTab('overview')">
+      <svg width="14" height="14"><use href="#icon-clipboard"/></svg>Case Overview
+    </button>
+    <button class="tab-btn" role="tab" id="tab-update" aria-controls="panel-update" aria-selected="false" onclick="switchTab('update')">
+      <svg width="14" height="14"><use href="#icon-edit"/></svg>Log Update
+    </button>
+    <button class="tab-btn" role="tab" id="tab-timeline" aria-controls="panel-timeline" aria-selected="false" onclick="switchTab('timeline')">
+      <svg width="14" height="14"><use href="#icon-clock"/></svg>Investigation Timeline
+    </button>
+    <button class="tab-btn" role="tab" id="tab-lifecycle" aria-controls="panel-lifecycle" aria-selected="false" onclick="switchTab('lifecycle')">
+      <svg width="14" height="14"><use href="#icon-lifecycle"/></svg>Case Lifecycle
+    </button>
+  </nav>
+
+  <!-- ── PANEL 1: CASE OVERVIEW ── -->
+  <div class="tab-panel active" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <div class="overview-grid">
+      <div class="overview-cell">
+        <div class="field-label">Case Type</div>
+        <div class="field-value">{{ case.crime_category }}</div>
+      </div>
+      <div class="overview-cell">
+        <div class="field-label">Status</div>
+        <div class="field-value">
+          {% if case.status == "CASE CLOSED" or case.status == "Closed" %}
+            <svg class="status-check" width="15" height="15"><use href="#icon-tick-circle"/></svg>
+          {% endif %}
+          {{ case.status }}
+        </div>
+      </div>
+      <div class="overview-cell">
+        <div class="field-label">Assigned Officer</div>
+        <div class="field-value">
+          <svg width="13" height="13" style="color:var(--grey-400)"><use href="#icon-circle"/></svg>
+          Detective {{ case.assigned_to.get_full_name|default:case.assigned_to.username }}
+        </div>
+      </div>
+      <div class="overview-cell">
+        <div class="field-label">Station</div>
+        <div class="field-value">{{ case.station|default:"&mdash;" }}</div>
+      </div>
+      <div class="overview-cell">
+        <div class="field-label">Reference ID</div>
+        <div class="field-value" style="font-family:var(--mono);font-size:12px;">{{ case.reference_id|default:case.cas_number }}</div>
+      </div>
+    </div>
+
+    <!-- Case Lifecycle embedded in overview -->
+    <div class="lifecycle-section">
+      <div class="lifecycle-title">Case Lifecycle</div>
+      <ul class="lifecycle-list">
+        {% for stage in lifecycle_stages %}
+        <li class="lifecycle-item {{ stage.status }}">
+          <div class="lc-icon-wrap">
+            <div class="lc-icon">
+              {% if stage.status == "done" %}
+                <svg width="13" height="13"><use href="#icon-check"/></svg>
+              {% elif stage.status == "current" %}
+                <svg width="13" height="13"><use href="#icon-hourglass"/></svg>
+              {% else %}
+                <svg width="13" height="13"><use href="#icon-circle"/></svg>
+              {% endif %}
+            </div>
+          </div>
+          <div class="lc-content">
+            <div class="lc-row">
+              <div>
+                <div class="lc-name">{{ stage.get_stage_key_display }}</div>
+                {% if stage.note %}<div class="lc-note">{{ stage.note }}</div>{% endif %}
+              </div>
+              {% if stage.status == "done" %}
+              <div class="lc-meta-right">
+                <div class="lc-avatar">{{ stage.actor_initials|default:"KB" }}</div>
+                <div class="lc-role">{{ stage.actor_role|default:"Detective" }}</div>
+                <div class="lc-date">{{ stage.completed_at|date:"d M Y" }}</div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if case.status == "CASE CLOSED" or case.status == "Closed" %}
+      <div class="closed-notice">
+        <svg width="16" height="16"><use href="#icon-tick-circle"/></svg>
+        This case is closed and all updates are final. Case timeline is immutable and recorded for accountability.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── PANEL 2: LOG UPDATE ── -->
+  <div class="tab-panel" id="panel-update" role="tabpanel" aria-labelledby="tab-update">
+    <div class="log-layout">
+      <div>
+        <div class="form-header">
+          <span class="form-header-title">Log Investigation Update</span>
+          <span class="audit-pill">
+            <svg width="12" height="12"><use href="#icon-lock"/></svg>
+            Audit recorded
+          </span>
+        </div>
+
+        <div class="info-notice">
+          <svg width="15" height="15" style="flex-shrink:0;margin-top:1px"><use href="#icon-info"/></svg>
+          All updates are permanently recorded and cannot be edited or deleted.
+        </div>
+
+        <form method="POST" action="{% url 'add_update' case.id %}" id="update-form">
+          {% csrf_token %}
+          <div class="form-row">
+            <div>
+              <label class="form-label" for="action_type">Action Type <span class="req">*</span></label>
+              <select name="action_type" id="action_type" class="input" required>
+                <option value="">Select action type...</option>
+                <option>Scene Investigation</option>
+                <option>Witness Interview</option>
+                <option>Suspect Interview</option>
+                <option>CCTV Review</option>
+                <option>Evidence Collection</option>
+                <option>Forensic Report</option>
+                <option>Lab Analysis</option>
+                <option>NPA Referral</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" for="update_date">Date &amp; Time</label>
+              <input type="datetime-local" name="update_date" id="update_date" class="input"
+                     value="{% now 'd M Y, H:i' %}">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Description <span class="req">*</span></label>
+            <textarea name="description" id="description" class="input" rows="6"
+              placeholder="Provide a detailed description of the update..."
+              maxlength="3000" required
+              oninput="document.getElementById('charCount').textContent=this.value.length+'/3000'">
+            </textarea>
+            <div class="char-count" id="charCount">0/3000</div>
+          </div>
+
+          <label class="attach-zone" for="evidence_file">
+            <svg width="20" height="20" class="attach-icon"><use href="#icon-attach"/></svg>
+            <div class="attach-text">
+              <div class="attach-title">Attach Evidence (Optional)</div>
+              <div class="attach-sub">Upload photos, documents or other evidence</div>
+            </div>
+            <button type="button" class="btn btn-outline" style="padding:7px 14px;font-size:12px;"
+              onclick="event.preventDefault();showToast('info','Attach Evidence','File picker activated.')">Choose Files</button>
+          </label>
+          <input type="file" id="evidence_file" name="evidence_file" style="display:none" multiple>
+
+          <div class="form-footer">
+            <a href="{% url 'my_cases' %}" class="btn btn-cancel">Cancel</a>
+            <button type="submit" class="btn btn-submit" onclick="handleLogUpdate(event)">
+              <svg width="14" height="14"><use href="#icon-edit"/></svg>
+              Log Update
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sidebar -->
+      <div>
+        <div class="guidelines-card">
+          <div class="guidelines-title">Update Guidelines</div>
+          <div class="guideline-item">
+            <div class="guideline-icon">
+              <svg width="14" height="14"><use href="#icon-edit"/></svg>
+            </div>
+            <div>
+              <div class="guideline-text-title">Be clear and factual</div>
+              <div class="guideline-text-sub">Provide accurate and concise information.</div>
+            </div>
+          </div>
+          <div class="guideline-item">
+            <div class="guideline-icon">
+              <svg width="14" height="14"><use href="#icon-attach"/></svg>
+            </div>
+            <div>
+              <div class="guideline-text-title">Attach evidence</div>
+              <div class="guideline-text-sub">Add supporting documents where available.</div>
+            </div>
+          </div>
+          <div class="guideline-item">
+            <div class="guideline-icon">
+              <svg width="14" height="14"><use href="#icon-lock"/></svg>
+            </div>
+            <div>
+              <div class="guideline-text-title">Permanent record</div>
+              <div class="guideline-text-sub">This update will be permanently recorded.</div>
+            </div>
+          </div>
+          <div class="guideline-item">
+            <div class="guideline-icon">
+              <svg width="14" height="14"><use href="#icon-tick-circle"/></svg>
+            </div>
+            <div>
+              <div class="guideline-text-title">Accountability</div>
+              <div class="guideline-text-sub">All actions are logged for transparency.</div>
+            </div>
+          </div>
+        </div>
+        <div class="need-help-card">
+          <div class="need-help-title">⚠ Need assistance?</div>
+          <div class="need-help-text">Contact your supervisor or administrator if you need help with this update.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL 3: INVESTIGATION TIMELINE ── -->
+  <div class="tab-panel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline">
+    <div class="tl-toolbar">
+      <button class="tl-btn" onclick="showToast('info','Filter','Timeline filter options coming soon.')">
+        <svg width="13" height="13"><use href="#icon-filter"/></svg>Filter
+      </button>
+      <button class="tl-btn" onclick="showToast('success','Export','Timeline exported successfully.')">
+        <svg width="13" height="13"><use href="#icon-download"/></svg>Export
+      </button>
+      <button class="tl-btn" onclick="window.print(); showToast('info','Print','Sending to printer...')">
+        <svg width="13" height="13"><use href="#icon-print"/></svg>Print
+      </button>
+    </div>
+
+    <div class="tl-list">
+      {% for update in updates %}
+      <div class="tl-item">
+        <div class="tl-date-col">
+          <div class="tl-date">{{ update.created_at|date:"d M Y" }}</div>
+          <div class="tl-time">{{ update.created_at|date:"H:i" }}</div>
+        </div>
+        <div class="tl-spine">
+          <div class="tl-dot {% if update.created_by == None %}system{% endif %}"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <div class="tl-header">
+            <span class="tl-action">{{ update.action_type }}</span>
+            <div class="tl-tags">
+              <span class="tl-tag tl-tag-detective">{{ update.created_by.get_full_name|default:"Detective" }}</span>
+              <span class="tl-tag tl-tag-system">Detective</span>
+            </div>
+          </div>
+          <div class="tl-desc">{{ update.description }}</div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="tl-empty">No investigation updates have been logged yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── PANEL 4: CASE LIFECYCLE (standalone) ── -->
+  <div class="tab-panel" id="panel-lifecycle" role="tabpanel" aria-labelledby="tab-lifecycle">
+    <div style="margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--grey-100);">
+      <div style="font-size:15px;font-weight:700;color:var(--grey-900);margin-bottom:14px;">Case Lifecycle</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;background:var(--grey-50);border:1px solid var(--grey-200);border-radius:var(--radius-sm);padding:16px 18px;">
+        <div>
+          <div class="field-label">Victim</div>
+          <div class="field-value">{{ case.victim_name|default:"&mdash;" }}</div>
+        </div>
+        <div>
+          <div class="field-label">Detective Assigned</div>
+          <div class="field-value">{{ case.assigned_to.get_full_name|default:case.assigned_to.username }}</div>
+        </div>
+        <div>
+          <div class="field-label">Opened</div>
+          <div class="field-value">{{ case.created_at|date:"d M Y" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="lifecycle-list">
+      {% for stage in lifecycle_stages %}
+      <li class="lifecycle-item {{ stage.status }}">
+        <div class="lc-icon-wrap">
+          <div class="lc-icon">
+            {% if stage.status == "done" %}
+              <svg width="13" height="13"><use href="#icon-check"/></svg>
+            {% elif stage.status == "current" %}
+              <svg width="13" height="13"><use href="#icon-hourglass"/></svg>
+            {% else %}
+              <svg width="13" height="13"><use href="#icon-circle"/></svg>
+            {% endif %}
+          </div>
+        </div>
+        <div class="lc-content">
+          <div class="lc-row">
+            <div>
+              <div class="lc-name">{{ stage.get_stage_key_display }}</div>
+              {% if stage.note %}<div class="lc-note">{{ stage.note }}</div>{% endif %}
+            </div>
+            {% if stage.status == "done" %}
+            <div class="lc-meta-right">
+              <div class="lc-avatar">{{ stage.actor_initials|default:"KB" }}</div>
+              <div class="lc-role">{{ stage.actor_role|default:"Detective" }}</div>
+              <div class="lc-date">{{ stage.completed_at|date:"d M Y, H:i" }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+
+    {% if case.status == "CASE CLOSED" or case.status == "Closed" %}
+    <div class="closed-notice">
+      <svg width="16" height="16"><use href="#icon-tick-circle"/></svg>
+      This case is closed and all updates are final. Case timeline is immutable and recorded for accountability.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  /* ── TAB SWITCHING ─────────────────────────────── */
+  function switchTab(name) {
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("panel-" + name).classList.add("active");
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-selected","false");
+    });
+    const btn = document.getElementById("tab-" + name);
+    btn.classList.add("active");
+    btn.setAttribute("aria-selected","true");
+  }
+
+  /* ── TOAST SYSTEM ──────────────────────────────── */
+  function showToast(type, title, message, duration = 4000) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+
+    const icons = {
+      success: '#icon-tick-circle',
+      error:   '#icon-x-circle',
+      warning: '#icon-warning',
+      info:    '#icon-info'
+    };
+
+    toast.innerHTML =
+      '<div class="toast-icon">' +
+        '<svg width="16" height="16"><use href="' + (icons[type] || icons.info) + '"/></svg>' +
+      '</div>' +
+      '<div class="toast-body">' +
+        '<div class="toast-title">' + title + '</div>' +
+        '<div class="toast-msg">' + message + '</div>' +
+      '</div>' +
+      '<button class="toast-close" onclick="dismissToast(this.closest(\'.toast\'))">' +
+        '<svg width="14" height="14"><use href="#icon-x"/></svg>' +
+      '</button>' +
+      '<div class="toast-progress"></div>';
+
+    container.appendChild(toast);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { toast.classList.add('show'); });
+    });
+
+    var timer = setTimeout(function() { dismissToast(toast); }, duration);
+    toast._timer = timer;
+    return toast;
+  }
+
+  function dismissToast(toast) {
+    if (!toast || !toast.parentNode) return;
+    clearTimeout(toast._timer);
+    toast.classList.remove('show');
+    toast.style.transform = 'translateX(120%)';
+    toast.style.opacity = '0';
+    setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+  }
+
+  function scheduleToast(type, title, message) {
+    setTimeout(function() { showToast(type, title, message); }, 200);
+  }
+
+  /* ── LOG UPDATE HANDLER ───────────────────────── */
+  function handleLogUpdate(e) {
+    var actionType = document.getElementById('action_type').value;
+    var description = document.getElementById('description').value.trim();
+
+    if (!actionType || !description) {
+      e.preventDefault();
+      showToast('error', 'Validation Error', 'Please fill in all required fields before submitting.');
+      return;
+    }
+
+    showToast('success', 'Update Logged', '"' + actionType + '" has been recorded to the investigation timeline.');
+  }
+
+  /* ── DJANGO MESSAGES VIA JSON DATA ISLAND ─────── */
+  document.addEventListener('DOMContentLoaded', function() {
+    var msgMap = { 'success':'success', 'error':'error', 'warning':'warning', 'info':'info', 'debug':'info' };
+    try {
+      var raw = document.getElementById('django-messages-data').textContent.trim();
+      var messages = JSON.parse(raw);
+      messages.forEach(function(m) {
+        var type = msgMap[m.type] || 'info';
+        var title = m.type.charAt(0).toUpperCase() + m.type.slice(1);
+        showToast(type, title, m.text);
+      });
+    } catch(e) {
+      // No messages or parse error — fail silently
+    }
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,660 @@
+{% extends "base.html" %} {% block content %}
+
+<style>
+  :root {
+    --navy: #0f172a;
+    --blue: #2563eb;
+    --blue-light: #eff6ff;
+    --blue-border: #bfdbfe;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --red-border: #fca5a5;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --green-border: #86efac;
+    --grey-50: #f8fafc;
+    --grey-100: #f1f5f9;
+    --grey-200: #e2e8f0;
+    --grey-300: #cbd5e1;
+    --grey-400: #94a3b8;
+    --grey-500: #64748b;
+    --grey-600: #475569;
+    --grey-700: #334155;
+    --grey-900: #0f172a;
+    --radius: 10px;
+    --radius-sm: 7px;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07);
+    --transition: 0.15s ease;
+    --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--grey-50);
+    color: var(--grey-900);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .breadcrumb a {
+    color: var(--grey-500);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition);
+  }
+  .breadcrumb a:hover {
+    color: var(--blue);
+    text-decoration: underline;
+  }
+  .breadcrumb .current {
+    color: var(--grey-900);
+    font-weight: 600;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--grey-900);
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+  .page-header .sub {
+    font-size: 13px;
+    color: var(--grey-500);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-decoration: none;
+    line-height: 1;
+    transition:
+      opacity var(--transition),
+      transform var(--transition);
+    background: none;
+  }
+  .btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+  .btn:active {
+    transform: none;
+  }
+  .btn-outline {
+    background: #fff;
+    color: var(--grey-600);
+    border-color: var(--grey-200);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-submit {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+    padding: 10px 24px;
+  }
+
+  .tabs-wrapper {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1px solid var(--grey-200);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .tabs-nav {
+    display: flex;
+    border-bottom: 2px solid var(--grey-100);
+    background: var(--grey-50);
+  }
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    color: var(--grey-500);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition:
+      color var(--transition),
+      border-color var(--transition),
+      background var(--transition);
+    white-space: nowrap;
+  }
+  .tab-btn svg {
+    flex-shrink: 0;
+  }
+  .tab-btn:hover {
+    color: var(--blue);
+    background: var(--blue-light);
+  }
+  .tab-btn.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+    background: #fff;
+  }
+  .tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--grey-200);
+    color: var(--grey-600);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    min-width: 20px;
+  }
+  .tab-btn.active .tab-count {
+    background: var(--blue-light);
+    color: var(--blue);
+  }
+  .tab-panel {
+    display: none;
+    padding: 28px;
+  }
+  .tab-panel.active {
+    display: block;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--grey-600);
+    margin-bottom: 6px;
+  }
+  .form-label .req {
+    color: var(--red);
+    margin-left: 2px;
+  }
+  .form-group {
+    margin-bottom: 18px;
+  }
+  .input {
+    width: 100%;
+    padding: 10px 13px;
+    border: 1.5px solid var(--grey-200);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: var(--font);
+    color: var(--grey-900);
+    background: #fff;
+    outline: none;
+    appearance: none;
+    transition:
+      border-color var(--transition),
+      box-shadow var(--transition);
+  }
+  .input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  textarea.input {
+    resize: vertical;
+    min-height: 110px;
+    line-height: 1.6;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--grey-300);
+    border-radius: var(--radius-sm);
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition:
+      border-color var(--transition),
+      background var(--transition);
+    background: var(--grey-50);
+    position: relative;
+  }
+  .drop-zone:hover,
+  .drop-zone.dragover {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .drop-zone-icon {
+    margin: 0 auto 10px;
+    color: var(--grey-400);
+  }
+  .drop-zone-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--grey-700);
+    margin-bottom: 4px;
+  }
+  .drop-zone-hint {
+    font-size: 12px;
+    color: var(--grey-400);
+  }
+  .drop-zone-selected {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-top: 10px;
+    display: none;
+  }
+
+  .doc-list {
+    list-style: none;
+  }
+  .doc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--grey-100);
+  }
+  .doc-item:first-child {
+    padding-top: 0;
+  }
+  .doc-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .doc-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--grey-500);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .doc-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--grey-900);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .doc-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--grey-100);
+    color: var(--grey-600);
+    border: 1px solid var(--grey-200);
+  }
+  .doc-description {
+    font-size: 13px;
+    color: var(--grey-600);
+    margin-bottom: 5px;
+    line-height: 1.5;
+  }
+  .doc-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--grey-400);
+    font-weight: 500;
+  }
+  .doc-empty {
+    text-align: center;
+    color: var(--grey-400);
+    font-size: 13px;
+    padding: 36px 0;
+  }
+
+  @media (max-width: 640px) {
+    .tabs-nav {
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 12px 14px;
+      font-size: 12px;
+    }
+    .tab-panel {
+      padding: 20px 16px;
+    }
+  }
+</style>
+
+<!-- SVG SPRITE -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+  <symbol
+    id="icon-breadcrumb-arrow"
+    viewBox="0 0 12 12"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M4 2l4 4-4 4" />
+  </symbol>
+  <symbol
+    id="icon-arrow-left"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M15 10H5m0 0l4-4m-4 4 4 4" />
+  </symbol>
+  <symbol
+    id="icon-upload"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M10 13V4m0 0L7 7m3-3 3 3" />
+    <path d="M3 14v1a3 3 0 003 3h8a3 3 0 003-3v-1" />
+  </symbol>
+  <symbol
+    id="icon-folder"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path
+      d="M3 7a2 2 0 012-2h3l2 2h5a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+    />
+  </symbol>
+  <symbol
+    id="icon-document"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M6 2h7l5 5v11a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z" />
+    <path d="M13 2v5h5M8 10h4M8 13h4" />
+  </symbol>
+  <symbol
+    id="icon-calendar"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <rect x="3" y="4" width="14" height="14" rx="2" />
+    <path d="M3 9h14M7 2v4M13 2v4" />
+  </symbol>
+</svg>
+
+<!-- BREADCRUMB -->
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="{% url 'my_cases' %}">My Cases</a>
+  <svg width="12" height="12"><use href="#icon-breadcrumb-arrow" /></svg>
+  <a href="{% url 'case_detail' case.id %}">{{ case.cas_number }}</a>
+  <svg width="12" height="12"><use href="#icon-breadcrumb-arrow" /></svg>
+  <span class="current">Upload Evidence</span>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div>
+    <h1>Upload Evidence</h1>
+    <p class="sub">
+      {{ case.cas_number }}&nbsp;&middot;&nbsp;{{ case.crime_category|upper }}
+    </p>
+  </div>
+</div>
+
+<!-- TABBED CONTENT -->
+<div class="tabs-wrapper">
+  <nav class="tabs-nav" role="tablist" aria-label="Evidence sections">
+    <button
+      class="tab-btn active"
+      role="tab"
+      id="tab-upload"
+      aria-controls="panel-upload"
+      aria-selected="true"
+      onclick="switchTab('upload')"
+    >
+      <svg width="15" height="15"><use href="#icon-upload" /></svg>
+      Upload Document
+    </button>
+    <button
+      class="tab-btn"
+      role="tab"
+      id="tab-documents"
+      aria-controls="panel-documents"
+      aria-selected="false"
+      onclick="switchTab('documents')"
+    >
+      <svg width="15" height="15"><use href="#icon-folder" /></svg>
+      Uploaded Documents
+      <span class="tab-count">{{ evidence|length }}</span>
+    </button>
+  </nav>
+
+  <!-- PANEL 1: UPLOAD DOCUMENT -->
+  <div
+    class="tab-panel active"
+    id="panel-upload"
+    role="tabpanel"
+    aria-labelledby="tab-upload"
+  >
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label class="form-label" for="document_type">
+          Document Type <span class="req">*</span>
+        </label>
+        <select name="document_type" id="document_type" class="input" required>
+          <option value="">Select document type...</option>
+          <option>Forensic Report</option>
+          <option>CCTV Footage</option>
+          <option>Witness Statement</option>
+          <option>Suspect Statement</option>
+          <option>Lab Analysis</option>
+          <option>Scene Photograph</option>
+          <option>Supporting Document</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="file-input">
+          File <span class="req">*</span>
+        </label>
+        <div
+          class="drop-zone"
+          id="dropZone"
+          ondragover="handleDragOver(event)"
+          ondragleave="handleDragLeave(event)"
+          ondrop="handleDrop(event)"
+        >
+          <input
+            type="file"
+            name="file"
+            id="file-input"
+            required
+            accept=".pdf,.docx,.jpg,.jpeg,.png,.txt,.mp4"
+            onchange="handleFileSelect(this)"
+          />
+          <div class="drop-zone-icon">
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 36 36"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 24V10m0 0l-6 6m6-6 6 6" />
+              <path d="M6 28v1a5 5 0 005 5h14a5 5 0 005-5v-1" />
+            </svg>
+          </div>
+          <div class="drop-zone-label">Click to select file</div>
+          <div class="drop-zone-hint">
+            PDF, DOCX, JPG, PNG, TXT, MP4 (max 25MB)
+          </div>
+          <div class="drop-zone-selected" id="selectedFileName"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="description">
+          Description <span class="req">*</span>
+        </label>
+        <textarea
+          name="description"
+          id="description"
+          class="input"
+          rows="5"
+          placeholder="Describe this document and its relevance to the investigation..."
+          required
+        ></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-submit">
+        <svg width="15" height="15"><use href="#icon-upload" /></svg>
+        Upload Document
+      </button>
+    </form>
+  </div>
+
+  <!-- PANEL 2: UPLOADED DOCUMENTS -->
+  <div
+    class="tab-panel"
+    id="panel-documents"
+    role="tabpanel"
+    aria-labelledby="tab-documents"
+  >
+    <ul class="doc-list">
+      {% for doc in evidence %}
+      <li class="doc-item">
+        <div class="doc-icon">
+          <svg width="18" height="18"><use href="#icon-document" /></svg>
+        </div>
+        <div style="flex: 1; min-width: 0">
+          <div class="doc-name">
+            {{ doc.file.name|cut:"evidence/" }}
+            <span class="doc-type-badge">{{ doc.document_type }}</span>
+          </div>
+          <div class="doc-description">{{ doc.description }}</div>
+          <div class="doc-meta">
+            <svg width="12" height="12"><use href="#icon-calendar" /></svg>
+            Uploaded {{ doc.uploaded_at|date:"d M Y, H:i" }}
+          </div>
+        </div>
+      </li>
+      {% empty %}
+      <li class="doc-empty">No documents have been uploaded yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<script>
+  function switchTab(name) {
+    document
+      .querySelectorAll(".tab-panel")
+      .forEach((p) => p.classList.remove("active"));
+    document.getElementById("panel-" + name).classList.add("active");
+    document.querySelectorAll(".tab-btn").forEach((b) => {
+      b.classList.remove("active");
+      b.setAttribute("aria-selected", "false");
+    });
+    const btn = document.getElementById("tab-" + name);
+    btn.classList.add("active");
+    btn.setAttribute("aria-selected", "true");
+  }
+
+  function handleFileSelect(input) {
+    const label = document.getElementById("selectedFileName");
+    if (input.files && input.files[0]) {
+      label.textContent = input.files[0].name;
+      label.style.display = "block";
+      const zone = document.getElementById("dropZone");
+      zone.style.borderColor = "var(--blue)";
+      zone.style.background = "var(--blue-light)";
+    }
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    document.getElementById("dropZone").classList.add("dragover");
+  }
+
+  function handleDragLeave() {
+    document.getElementById("dropZone").classList.remove("dragover");
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById("dropZone").classList.remove("dragover");
+    const input = document.getElementById("file-input");
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      handleFileSelect(input);
+    }
+  }
+</script>
+
+{% endblock %}
