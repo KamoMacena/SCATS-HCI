@@ -1,0 +1,284 @@
+{% extends 'commander/base.html' %}
+
+{% block content %}
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+    .btn-export { background: linear-gradient(135deg, #27ae60, #219a52); color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; transition: var(--transition); }
+    .btn-export:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .complaint-badge { background: #e74c3c; color: white; padding: 8px 20px; border-radius: 40px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: white; border-radius: 20px; padding: 20px 24px; border-left: 4px solid; box-shadow: var(--box-shadow); transition: var(--transition); }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card.pending { border-left-color: #f39c12; }
+    .stat-card.resolved { border-left-color: #2ecc71; }
+    .stat-card.total { border-left-color: #9b59b6; }
+    .stat-card h4 { font-size: 12px; text-transform: uppercase; color: var(--gray-500); margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px; }
+    .stat-number { font-size: 32px; font-weight: 800; margin: 0; }
+    .stat-card.pending .stat-number { color: #f39c12; }
+    .stat-card.resolved .stat-number { color: #2ecc71; }
+    .stat-card.total .stat-number { color: #9b59b6; }
+
+    .filter-bar { background: white; border-radius: 20px; padding: 20px 24px; margin-bottom: 25px; box-shadow: var(--box-shadow); }
+    .filter-form { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+    .filter-group { flex: 1; min-width: 160px; }
+    .filter-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+    .filter-group input, .filter-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: 10px; font-size: 13px; }
+    .btn-apply { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-reset { background: var(--gray-500); color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+
+    .table-wrapper { background: white; border-radius: 20px; overflow-x: auto; box-shadow: var(--box-shadow); }
+    .complaints-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .complaints-table th { background: var(--gray-100); padding: 16px 14px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--gray-600); border-bottom: 1px solid var(--gray-200); }
+    .complaints-table td { padding: 16px 14px; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+    .complaints-table tr:hover td { background: var(--gray-50); }
+
+    .complaint-text { 
+        max-width: 300px; 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        cursor: pointer; 
+        color: var(--primary); 
+        font-weight: 500;
+    }
+    .complaint-text:hover { 
+        text-decoration: underline; 
+        color: #e74c3c;
+    }
+
+    .badge-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+    .badge-pending { background: #fed7aa; color: #d97706; }
+    .badge-resolved { background: #d1fae5; color: #059669; }
+
+    .action-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-sm { padding: 6px 12px; border: none; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+    .btn-resolve-complaint { background: #27ae60; color: white; }
+    .btn-resolve-complaint:hover { background: #219a52; transform: scale(1.02); }
+    .btn-forward { background: #f39c12; color: white; }
+    .btn-forward:hover { background: #e67e22; transform: scale(1.02); }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 24px; width: 550px; max-width: 90%; padding: 28px; }
+    body.dark-mode .modal-content { background: #1e1e2f; }
+    .modal-content h3 { margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px; }
+    .modal-content textarea, .modal-content select { width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 12px; font-family: inherit; margin: 10px 0; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 15px; }
+    .btn-save { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    .btn-cancel { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+
+    .full-complaint-text {
+        background: var(--gray-100);
+        padding: 20px;
+        border-radius: 16px;
+        margin: 15px 0;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 14px;
+        line-height: 1.6;
+        border-left: 4px solid #f39c12;
+    }
+    body.dark-mode .full-complaint-text { background: #2a2a3e; }
+    .complaint-meta {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--gray-200);
+    }
+    body.dark-mode .complaint-meta { border-bottom-color: #2a2a3e; }
+    .complaint-meta-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .complaint-meta-item i { width: 20px; color: #f39c12; }
+
+    .empty-state { text-align: center; padding: 60px; color: var(--gray-500); }
+    .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+    @media (max-width: 1000px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<div class="dashboard-content">
+    <div class="page-header">
+        <h1><i class="fas fa-comment-dots" style="color: #f39c12;"></i> Citizen Complaints</h1>
+        <div style="display: flex; gap: 12px;">
+            <a href="{% url 'export_complaints_excel' %}" class="btn-export"><i class="fas fa-file-excel"></i> Export Complaints</a>
+            <div class="complaint-badge"><i class="fas fa-exclamation-triangle"></i> Public Feedback</div>
+        </div>
+    </div>
+
+    <!-- Stats Cards - Only TOTAL, PENDING, RESOLVED -->
+    <div class="stats-row">
+        <div class="stat-card total"><h4><i class="fas fa-flag"></i> TOTAL</h4><p class="stat-number">{{ complaints|length }}</p></div>
+        <div class="stat-card pending"><h4><i class="fas fa-clock"></i> PENDING</h4><p class="stat-number">{{ pending_count|default:0 }}</p></div>
+        <div class="stat-card resolved"><h4><i class="fas fa-check-circle"></i> RESOLVED</h4><p class="stat-number">{{ resolved_count|default:0 }}</p></div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="GET" action="{% url 'complaints' %}" class="filter-form">
+            <div class="filter-group"><label><i class="fas fa-search"></i> SEARCH</label><input type="text" name="search" placeholder="Complainant or case..." value="{{ search_query }}"></div>
+            <div class="filter-group"><label><i class="fas fa-tag"></i> STATUS</label><select name="status"><option value="">All</option><option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pending</option><option value="RESOLVED" {% if selected_status == 'RESOLVED' %}selected{% endif %}>Resolved</option></select></div>
+            <div class="filter-group"><label><i class="fas fa-folder"></i> CASE</label><input type="text" name="case" placeholder="Case number..." value="{{ case_filter }}"></div>
+            <div class="filter-group"><button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply</button></div>
+            <div class="filter-group"><a href="{% url 'complaints' %}" class="btn-reset"><i class="fas fa-undo"></i> Reset</a></div>
+        </form>
+    </div>
+
+    <div class="table-wrapper">
+        {% if complaints %}
+        <table class="complaints-table">
+            <thead>
+                <tr>
+                    <th>Complaint #</th>
+                    <th>Case Number</th>
+                    <th>Complainant</th>
+                    <th>Complaint</th>
+                    <th>Status</th>
+                    <th>Received</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for complaint in complaints %}
+                <tr data-complaint-id="{{ complaint.id }}">
+                    <td><strong>{{ complaint.complaint_number }}</strong></a>
+                    <td>
+                        {% if complaint.case %}
+                        <a href="{% url 'audit_trail' complaint.case.case_number %}" style="color: var(--primary); text-decoration: none;">{{ complaint.case.case_number }}</a>
+                        {% else %}N/A{% endif %}
+                    </a>
+                    <td>{{ complaint.complainant_name }}</a>
+                    <td class="complaint-text" 
+                        onclick="viewFullComplaint('{{ complaint.complaint_number|escapejs }}', '{{ complaint.complainant_name|escapejs }}', '{{ complaint.complaint_text|escapejs }}', '{{ complaint.case.case_number|default:"N/A" }}', '{{ complaint.created_at|date:"d M Y H:i" }}', '{{ complaint.status }}')"
+                        title="Click to view full complaint">
+                        {{ complaint.complaint_text|truncatechars:80 }}
+                    </a>
+                    <td>
+                        <span class="badge-status 
+                            {% if complaint.status == 'PENDING' %}badge-pending
+                            {% else %}badge-resolved{% endif %}">
+                            <i class="fas 
+                                {% if complaint.status == 'PENDING' %}fa-clock
+                                {% else %}fa-check-circle{% endif %}"></i>
+                            {% if complaint.status == 'PENDING' %}Pending{% else %}Resolved{% endif %}
+                        </span>
+                    </a>
+                    <td>{{ complaint.created_at|date:"d M Y H:i" }}</a>
+                    <td class="action-group">
+                        {% if complaint.status != 'RESOLVED' %}
+                        <button class="btn-sm btn-resolve-complaint" onclick="resolveComplaint('{{ complaint.id }}', '{{ complaint.complaint_number }}')"><i class="fas fa-check-circle"></i> Resolve</button>
+                        {% endif %}
+                        <button class="btn-sm btn-forward" onclick="forwardComplaint('{{ complaint.id }}', '{{ complaint.complaint_number }}')"><i class="fas fa-share"></i> Forward</button>
+                    </a>
+                </a>
+                {% endfor %}
+            </tbody>
+        </a>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-inbox"></i><p>No complaints found</p></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for Viewing Full Complaint -->
+<div id="viewComplaintModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-file-alt" style="color: #f39c12;"></i> Complete Complaint Details</h3>
+        <div class="complaint-meta">
+            <div class="complaint-meta-item"><i class="fas fa-hashtag"></i> <strong id="viewComplaintNumber"></strong></div>
+            <div class="complaint-meta-item"><i class="fas fa-user"></i> <strong id="viewComplainantName"></strong></div>
+            <div class="complaint-meta-item"><i class="fas fa-folder"></i> Case: <strong id="viewCaseNumber"></strong></div>
+            <div class="complaint-meta-item"><i class="fas fa-calendar"></i> <strong id="viewComplaintDate"></strong></div>
+        </div>
+        <div class="full-complaint-text" id="viewComplaintText"></div>
+        <div class="modal-buttons"><button class="btn-cancel" onclick="closeModal('viewComplaintModal')">Close</button></div>
+    </div>
+</div>
+
+<!-- Modal for Resolving Complaint -->
+<div id="resolveModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-check-circle" style="color: #27ae60;"></i> Resolve Complaint</h3>
+        <p>Complaint: <strong id="resolveComplaintNumber"></strong></p>
+        <textarea id="resolutionNotes" rows="4" placeholder="Enter resolution notes (how was this complaint addressed?)" required></textarea>
+        <div class="modal-buttons"><button class="btn-cancel" onclick="closeModal('resolveModal')">Cancel</button><button class="btn-save" id="confirmResolveBtn">Resolve Complaint</button></div>
+    </div>
+</div>
+
+<!-- Modal for Forwarding -->
+<div id="forwardModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-share" style="color: #f39c12;"></i> Forward Complaint</h3>
+        <p>Complaint: <strong id="forwardComplaintNumber"></strong></p>
+        <select id="forwardTo">
+            <option value="Detective">Assigned Detective</option>
+            <option value="District Commander">District Commander</option>
+            <option value="Provincial Commissioner">Provincial Commissioner</option>
+            <option value="IPID">IPID</option>
+        </select>
+        <textarea id="forwardMessage" rows="3" placeholder="Additional message (optional)"></textarea>
+        <div class="modal-buttons"><button class="btn-cancel" onclick="closeModal('forwardModal')">Cancel</button><button class="btn-save" id="sendForwardBtn">Forward Complaint</button></div>
+    </div>
+</div>
+
+<script>
+    let currentComplaintId = null;
+    let currentComplaintNumber = null;
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    function viewFullComplaint(complaintNumber, complainantName, complaintText, caseNumber, complaintDate, status) {
+        document.getElementById('viewComplaintNumber').innerText = complaintNumber;
+        document.getElementById('viewComplainantName').innerText = complainantName;
+        document.getElementById('viewCaseNumber').innerText = caseNumber;
+        document.getElementById('viewComplaintDate').innerText = complaintDate;
+        document.getElementById('viewComplaintText').innerHTML = complaintText.replace(/\n/g, '<br>');
+        document.getElementById('viewComplaintModal').classList.add('active');
+    }
+
+    function resolveComplaint(complaintId, complaintNumber) {
+        currentComplaintId = complaintId;
+        currentComplaintNumber = complaintNumber;
+        document.getElementById('resolveComplaintNumber').innerText = complaintNumber;
+        document.getElementById('resolveModal').classList.add('active');
+    }
+
+    function forwardComplaint(complaintId, complaintNumber) {
+        currentComplaintId = complaintId;
+        currentComplaintNumber = complaintNumber;
+        document.getElementById('forwardComplaintNumber').innerText = complaintNumber;
+        document.getElementById('forwardModal').classList.add('active');
+    }
+
+    // Confirm Resolve - Changes status from PENDING to RESOLVED
+    document.getElementById('confirmResolveBtn').addEventListener('click', function() {
+        const notes = document.getElementById('resolutionNotes').value.trim();
+        if (!notes) { alert('Please enter resolution notes'); return; }
+        fetch(`/api/complaint/resolve/${currentComplaintId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ resolution_notes: notes })
+        }).then(r => r.json()).then(d => {
+            if (d.success) { alert('Complaint resolved successfully'); location.reload(); }
+            else alert('Error');
+        });
+    });
+
+    // Forward Complaint
+    document.getElementById('sendForwardBtn').addEventListener('click', function() {
+        const to = document.getElementById('forwardTo').value;
+        const message = document.getElementById('forwardMessage').value;
+        fetch(`/api/complaint/forward/${currentComplaintId}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ to: to, message: message })
+        }).then(r => r.json()).then(d => {
+            if (d.success) { alert(`Complaint forwarded to ${to}`); closeModal('forwardModal'); document.getElementById('forwardMessage').value = ''; }
+            else alert('Error');
+        });
+    });
+</script>
+{% endblock %}

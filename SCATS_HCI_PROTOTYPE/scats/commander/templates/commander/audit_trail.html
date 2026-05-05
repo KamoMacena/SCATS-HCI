@@ -1,0 +1,239 @@
+{% extends 'commander/base.html' %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .case-info-bar {
+        background: white;
+        border-radius: 16px;
+        padding: 20px 24px;
+        margin-bottom: 25px;
+        border: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    body.dark-mode .case-info-bar {
+        background: #1e1e2f;
+        border-color: #2a2a3e;
+    }
+    
+    .case-details h3 {
+        margin: 0 0 5px 0;
+        font-size: 18px;
+    }
+    
+    .case-details p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 13px;
+    }
+    
+    .back-link {
+        background: #2c3e50;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    
+    .back-link:hover {
+        background: #1a2a3a;
+    }
+    
+    .table-wrapper {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e9ecef;
+        overflow-x: auto;
+    }
+    
+    body.dark-mode .table-wrapper {
+        background: #1e1e2f;
+        border-color: #2a2a3e;
+    }
+    
+    .audit-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    
+    .audit-table th {
+        background: #f8f9fa;
+        padding: 14px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #7f8c8d;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    body.dark-mode .audit-table th {
+        background: #16162a;
+        border-bottom-color: #2a2a3e;
+        color: #aaa;
+    }
+    
+    .audit-table td {
+        padding: 14px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+    }
+    
+    body.dark-mode .audit-table td {
+        border-bottom-color: #2a2a3e;
+        color: #eef2ff;
+    }
+    
+    .audit-table tr:hover td {
+        background: #f8f9fa;
+    }
+    
+    body.dark-mode .audit-table tr:hover td {
+        background: #25253b;
+    }
+    
+    .action-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 30px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .action-created { background: #d1fae5; color: #059669; }
+    .action-updated { background: #dbeafe; color: #2563eb; }
+    .action-acknowledged { background: #fed7aa; color: #d97706; }
+    .action-resolved { background: #d1fae5; color: #059669; }
+    
+    body.dark-mode .action-created { background: #1a3a2a; color: #34d399; }
+    body.dark-mode .action-updated { background: #1a2a4a; color: #60a5fa; }
+    body.dark-mode .action-acknowledged { background: #3d2a1a; color: #fbbf24; }
+    
+    .immutable-note {
+        background: #fff3cd;
+        border-left: 4px solid #f39c12;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        color: #856404;
+    }
+    
+    body.dark-mode .immutable-note {
+        background: #3d2a1a;
+        color: #fbbf24;
+        border-left-color: #fbbf24;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px;
+        color: #95a5a6;
+    }
+</style>
+
+<div class="dashboard-content">
+    <div class="page-header">
+        <h1><i class="fas fa-history" style="color: #3498db;"></i> Audit Trail</h1>
+        <div class="flag-badge"><i class="fas fa-lock"></i> Immutable Record</div>
+    </div>
+    
+    <div class="immutable-note">
+        <i class="fas fa-shield-alt" style="font-size: 16px;"></i>
+        <strong>Audit Trail Notice:</strong> This is an immutable, read-only record of all actions taken on this case. No entries can be modified or deleted.
+    </div>
+    
+    <div class="case-info-bar">
+        <div class="case-details">
+            <h3>{{ case.case_number }}</h3>
+            <p><strong>Crime:</strong> {{ case.crime_category }} | <strong>Status:</strong> {{ case.get_status_display }}</p>
+        </div>
+        <a href="{% url 'flagged_cases' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Cases
+        </a>
+    </div>
+    
+    <div class="table-wrapper">
+        {% if audit_logs %}
+        <table class="audit-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                    <th>Performed By</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in audit_logs %}
+                <tr>
+                    <td>{{ log.timestamp|date:"d M Y H:i:s" }}</a>
+                    <td>
+                        <span class="action-badge 
+                            {% if 'CREATED' in log.action_type %}action-created
+                            {% elif 'UPDATED' in log.action_type or 'CHANGED' in log.action_type %}action-updated
+                            {% elif 'ACKNOWLEDGED' in log.action_type %}action-acknowledged
+                            {% elif 'RESOLVED' in log.action_type or 'CLOSED' in log.action_type %}action-resolved
+                            {% else %}action-updated{% endif %}">
+                            <i class="fas 
+                                {% if 'CREATED' in log.action_type %}fa-plus-circle
+                                {% elif 'UPDATED' in log.action_type or 'CHANGED' in log.action_type %}fa-edit
+                                {% elif 'ACKNOWLEDGED' in log.action_type %}fa-check-circle
+                                {% elif 'RESOLVED' in log.action_type or 'CLOSED' in log.action_type %}fa-check-double
+                                {% else %}fa-info-circle{% endif %}"></i>
+                            {{ log.get_action_type_display|default:log.action_type }}
+                        </span>
+                    </a>
+                    <td>{{ log.action_description|truncatechars:80 }}</a>
+                    <td>{{ log.performed_by }}</a>
+                    <td><span style="background:#16213e; padding:2px 8px; border-radius:20px;">{{ log.performed_by_role }}</span></a>
+                </a>
+                {% endfor %}
+            </tbody>
+        </a>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-history"></i>
+            <p>No audit records found</p>
+            <p style="font-size: 12px;">Actions will appear here as they occur</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,415 @@
+{% extends 'commander/base.html' %}
+
+{% block content %}
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+    .btn-export { background: linear-gradient(135deg, #27ae60, #219a52); color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; transition: var(--transition); }
+    .btn-export:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .transfer-badge { background: #3498db; color: white; padding: 8px 20px; border-radius: 40px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px; }
+    .stat-card { background: white; border-radius: 20px; padding: 18px 16px; border-left: 4px solid; box-shadow: var(--box-shadow); transition: transform 0.2s; text-align: center; }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card.pending { border-left-color: #f39c12; }
+    .stat-card.approved { border-left-color: #2ecc71; }
+    .stat-card.rejected { border-left-color: #e74c3c; }
+    .stat-card.initiated { border-left-color: #3498db; }
+    .stat-card.avg-time { border-left-color: #9b59b6; }
+    .stat-card h4 { font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .stat-number { font-size: 28px; font-weight: 800; }
+    .stat-card.pending .stat-number { color: #f39c12; }
+    .stat-card.approved .stat-number { color: #2ecc71; }
+    .stat-card.rejected .stat-number { color: #e74c3c; }
+    .stat-card.initiated .stat-number { color: #3498db; }
+    .stat-card.avg-time .stat-number { color: #9b59b6; font-size: 24px; }
+    .stat-sub { font-size: 10px; color: #999; margin-top: 4px; }
+    body.dark-mode .stat-card { background: #1e1e2f; }
+    body.dark-mode .stat-card h4 { color: #ccc; }
+
+    .initiate-card { background: linear-gradient(135deg, #1a365d, #2b4f7c); border-radius: 20px; padding: 25px; margin-bottom: 30px; color: white; }
+    .initiate-card h3 { margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px; }
+    .initiate-form { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+    .form-group { flex: 1; min-width: 160px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; opacity: 0.8; }
+    .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 10px; border: none; font-size: 13px; }
+    .btn-initiate { background: #f39c12; color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-initiate:hover { background: #e67e22; transform: translateY(-2px); }
+
+    .filter-bar { background: white; border-radius: 20px; padding: 20px 24px; margin-bottom: 25px; box-shadow: var(--box-shadow); }
+    .filter-form { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+    .filter-group { flex: 1; min-width: 150px; }
+    .filter-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #666; margin-bottom: 6px; }
+    .filter-group input, .filter-group select { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 13px; }
+    body.dark-mode .filter-bar { background: #1e1e2f; }
+    body.dark-mode .filter-group label { color: #aaa; }
+    body.dark-mode .filter-group input, body.dark-mode .filter-group select { background: #2a2a3e; border-color: #3a3a4e; color: white; }
+    .btn-apply { background: #2c3e50; color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-reset { background: #95a5a6; color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+
+    .section-title { font-size: 20px; font-weight: 700; margin: 25px 0 15px 0; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 2px solid #e5e7eb; }
+    body.dark-mode .section-title { border-bottom-color: #2a2a3e; }
+
+    .bulk-actions { background: #f8f9fa; padding: 12px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+    body.dark-mode .bulk-actions { background: #2a2a3e; }
+    .btn-bulk { background: #9b59b6; color: white; border: none; padding: 6px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+    .table-wrapper { background: white; border-radius: 20px; overflow-x: auto; box-shadow: var(--box-shadow); margin-bottom: 25px; }
+    .transfers-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .transfers-table th { background: #f8f9fa; padding: 16px 14px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; color: #666; border-bottom: 1px solid #e5e7eb; }
+    .transfers-table td { padding: 16px 14px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    .transfers-table tr:hover td { background: #f8f9fa; }
+    body.dark-mode .table-wrapper { background: #1e1e2f; }
+    body.dark-mode .transfers-table th { background: #16162a; color: #aaa; border-bottom-color: #2a2a3e; }
+    body.dark-mode .transfers-table td { border-bottom-color: #2a2a3e; color: #eef2ff; }
+
+    .checkbox-col { width: 30px; text-align: center; }
+    .transfer-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .transfer-from { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+    .transfer-to { background: #d1fae5; color: #059669; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+    .badge-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+    .badge-pending { background: #fed7aa; color: #d97706; }
+    .badge-approved { background: #dbeafe; color: #2563eb; }
+    .badge-rejected { background: #fee2e2; color: #dc2626; }
+
+    .btn-sm { padding: 5px 10px; border: none; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-approve { background: #27ae60; color: white; }
+    .btn-approve:hover { background: #219a52; }
+    .btn-reject { background: #e74c3c; color: white; }
+    .btn-reject:hover { background: #c0392b; }
+    .btn-view { background: #3498db; color: white; text-decoration: none; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 24px; width: 500px; max-width: 90%; padding: 28px; }
+    body.dark-mode .modal-content { background: #1e1e2f; }
+    .modal-content textarea, .modal-content select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin: 10px 0; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 15px; }
+    .btn-save { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; }
+    .btn-cancel { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; }
+
+    .empty-state { text-align: center; padding: 60px; color: #999; }
+    .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+    @media (max-width: 1000px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+</style>
+
+<div class="dashboard-content">
+    <div class="page-header">
+        <h1><i class="fas fa-exchange-alt" style="color: #3498db;"></i> Case Transfers</h1>
+        <div style="display: flex; gap: 12px;">
+            <a href="{% url 'export_transfers_excel' %}" class="btn-export"><i class="fas fa-file-excel"></i> Export Report</a>
+            <div class="transfer-badge"><i class="fas fa-building"></i> Inter-Station Transfers</div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-row">
+        <div class="stat-card initiated"><h4><i class="fas fa-rocket"></i> INITIATED BY YOU</h4><div class="stat-number">{{ initiated_count|default:0 }}</div></div>
+        <div class="stat-card pending"><h4><i class="fas fa-clock"></i> PENDING</h4><div class="stat-number">{{ pending_transfers|length }}</div></div>
+        <div class="stat-card approved"><h4><i class="fas fa-check-circle"></i> APPROVED</h4><div class="stat-number">{{ approved_count|default:0 }}</div></div>
+        <div class="stat-card rejected"><h4><i class="fas fa-times-circle"></i> REJECTED</h4><div class="stat-number">{{ rejected_count|default:0 }}</div></div>
+        <div class="stat-card avg-time"><h4><i class="fas fa-hourglass-half"></i> AVG APPROVAL</h4><div class="stat-number">{{ avg_approval_days|default:0 }}<span style="font-size:14px;">d</span></div></div>
+    </div>
+
+    <!-- Initiate Inter-Station Transfer Card -->
+    <div class="initiate-card">
+        <h3><i class="fas fa-plus-circle"></i> Initiate Inter-Station Transfer</h3>
+        <form id="initiateTransferForm" class="initiate-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label><i class="fas fa-folder-open"></i> Case Number</label>
+                <input type="text" id="transferCaseNumber" placeholder="Enter CAS number..." required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-building"></i> From Station</label>
+                <input type="text" id="transferFromStation" value="Johannesburg Central" readonly style="background: #3a5a7c; color: white;">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-building"></i> To Station</label>
+                <select id="transferToStation" required>
+                    <option value="">Select destination station...</option>
+                    <option value="Pretoria Central">Pretoria Central</option>
+                    <option value="Soweto Central">Soweto Central</option>
+                    <option value="Sandton Central">Sandton Central</option>
+                    <option value="Roodepoort Central">Roodepoort Central</option>
+                    <option value="Midrand Central">Midrand Central</option>
+                    <option value="Germiston Central">Germiston Central</option>
+                    <option value="Boksburg Central">Boksburg Central</option>
+                    <option value="Benoni Central">Benoni Central</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-user"></i> Assigned Detective</label>
+                <select id="transferDetective" required>
+                    <option value="">Select detective...</option>
+                    <option value="Det. Molefe">Det. Molefe</option>
+                    <option value="Det. Nkosi">Det. Nkosi</option>
+                    <option value="Det. Dlamini">Det. Dlamini</option>
+                    <option value="Det. Cele">Det. Cele</option>
+                    <option value="Det. van Zyl">Det. van Zyl</option>
+                    <option value="Det. Botha">Det. Botha</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-file-alt"></i> Reason for Transfer</label>
+                <select id="transferReason">
+                    <option value="Case jurisdiction belongs to receiving station">Case jurisdiction</option>
+                    <option value="Witness/Victim relocated to area">Witness/Victim relocated</option>
+                    <option value="Specialized unit at receiving station">Specialized unit available</option>
+                    <option value="Workload distribution between stations">Workload distribution</option>
+                    <option value="Detective resources unavailable at current station">Resource constraints</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn-initiate"><i class="fas fa-paper-plane"></i> Initiate Transfer</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="GET" action="{% url 'transfers' %}" class="filter-form">
+            <div class="filter-group"><label><i class="fas fa-search"></i> SEARCH</label><input type="text" name="search" placeholder="Case or detective..." value="{{ search_query }}"></div>
+            <div class="filter-group"><label><i class="fas fa-tag"></i> STATUS</label><select name="status"><option value="">All</option><option value="PENDING">Pending</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select></div>
+            <div class="filter-group"><button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply</button></div>
+            <div class="filter-group"><a href="{% url 'transfers' %}" class="btn-reset"><i class="fas fa-undo"></i> Reset</a></div>
+        </form>
+    </div>
+
+    <!-- Pending Approval Section -->
+    <div class="section-title">
+        <i class="fas fa-hourglass-half"></i> Pending Approval
+        {% if pending_transfers %}<span style="background: #f39c12; color: white; padding: 2px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">{{ pending_transfers|length }}</span>{% endif %}
+    </div>
+
+    {% if pending_transfers %}
+    <div class="bulk-actions">
+        <input type="checkbox" id="selectAllPending"> <label for="selectAllPending">Select All</label>
+        <button class="btn-bulk" id="bulkApproveBtn"><i class="fas fa-check-double"></i> Bulk Approve</button>
+        <button class="btn-bulk" id="bulkRejectBtn" style="background:#e74c3c;"><i class="fas fa-times"></i> Bulk Reject</button>
+    </div>
+    {% endif %}
+
+    <div class="table-wrapper">
+        {% if pending_transfers %}
+        <table class="transfers-table">
+            <thead>
+                <tr>
+                    <th class="checkbox-col"><input type="checkbox" id="selectAllTable"></th>
+                    <th>Transfer #</th>
+                    <th>Case</th>
+                    <th>Station Transfer</th>
+                    <th>Detective</th>
+                    <th>Reason</th>
+                    <th>Initiated By</th>
+                    <th>Request Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in pending_transfers %}
+                <tr>
+                    <td class="checkbox-col"><input type="checkbox" class="transfer-checkbox" data-id="{{ transfer.id }}"></td>
+                    <td><strong>{{ transfer.transfer_number }}</strong></td>
+                    <td><a href="{% url 'audit_trail' transfer.case.case_number %}" style="color: var(--primary);">{{ transfer.case.case_number }}</a></td>
+                    <td><div class="transfer-flow"><span class="transfer-from">{{ transfer.from_station }}</span> <i class="fas fa-arrow-right"></i> <span class="transfer-to">{{ transfer.to_station }}</span></div></td>
+                    <td>{{ transfer.to_detective }}</a>
+                    <td>{{ transfer.reason|truncatechars:50 }}</a>
+                    <td>{{ transfer.initiated_by|default:"Commander" }}</a>
+                    <td>{{ transfer.request_date|date:"d M Y H:i" }}</a>
+                    <td><button class="btn-sm btn-approve" onclick="openApproveModal('{{ transfer.transfer_number }}')"><i class="fas fa-check"></i> Approve</button><button class="btn-sm btn-reject" onclick="openRejectModal('{{ transfer.transfer_number }}')"><i class="fas fa-times"></i> Reject</button></a>
+                </a>
+                {% endfor %}
+            </tbody>
+        </a>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-check-circle"></i><p>No pending transfers</p><p style="font-size: 12px;">All transfers have been processed</p></div>
+        {% endif %}
+    </div>
+
+    <!-- Transfer History Section -->
+    <div class="section-title">
+        <i class="fas fa-history"></i> Transfer History
+        {% if completed_transfers %}<span style="background: #3498db; color: white; padding: 2px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">{{ completed_transfers|length }}</span>{% endif %}
+    </div>
+
+    <div class="table-wrapper">
+        {% if completed_transfers %}
+        <table class="transfers-table">
+            <thead>
+                <tr>
+                    <th>Transfer #</th>
+                    <th>Case</th>
+                    <th>From Station</th>
+                    <th>To Station</th>
+                    <th>Status</th>
+                    <th>Initiated By</th>
+                    <th>Approved By</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in completed_transfers %}
+                <tr>
+                    <td><strong>{{ transfer.transfer_number }}</strong></td>
+                    <td><a href="{% url 'audit_trail' transfer.case.case_number %}" style="color: var(--primary);">{{ transfer.case.case_number }}</a></td>
+                    <td><span class="transfer-from">{{ transfer.from_station }}</span></td>
+                    <td><span class="transfer-to">{{ transfer.to_station }}</span></td>
+                    <td><span class="badge-status {% if transfer.status == 'APPROVED' %}badge-approved{% else %}badge-rejected{% endif %}"><i class="fas {% if transfer.status == 'APPROVED' %}fa-check{% else %}fa-times{% endif %}"></i> {{ transfer.status }}</span></a>
+                    <td>{{ transfer.initiated_by|default:"Commander" }}</a>
+                    <td>{{ transfer.approved_by|default:"—" }}</a>
+                    <td>{{ transfer.request_date|date:"d M Y" }}</a>
+                </a>
+                {% endfor %}
+            </tbody>
+        </a>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-history"></i><p>No transfer history</p></div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-check-circle" style="color: #27ae60;"></i> Approve Transfer</h3>
+        <p>Transfer: <strong id="approveTransferNumber"></strong></p>
+        <textarea id="approveNotes" rows="3" placeholder="Approval notes (optional)"></textarea>
+        <div class="modal-buttons"><button class="btn-cancel" onclick="closeModal('approveModal')">Cancel</button><button class="btn-save" id="confirmApproveBtn">Approve</button></div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-times-circle" style="color: #e74c3c;"></i> Reject Transfer</h3>
+        <p>Transfer: <strong id="rejectTransferNumber"></strong></p>
+        <textarea id="rejectReason" rows="3" placeholder="Reason for rejection" required></textarea>
+        <div class="modal-buttons"><button class="btn-cancel" onclick="closeModal('rejectModal')">Cancel</button><button class="btn-save" id="confirmRejectBtn">Reject</button></div>
+    </div>
+</div>
+
+<script>
+    let currentTransferNumber = null;
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    function openApproveModal(transferNumber) {
+        currentTransferNumber = transferNumber;
+        document.getElementById('approveTransferNumber').innerText = transferNumber;
+        document.getElementById('approveModal').classList.add('active');
+    }
+
+    function openRejectModal(transferNumber) {
+        currentTransferNumber = transferNumber;
+        document.getElementById('rejectTransferNumber').innerText = transferNumber;
+        document.getElementById('rejectModal').classList.add('active');
+    }
+
+    // Initiate Transfer
+    document.getElementById('initiateTransferForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const caseNumber = document.getElementById('transferCaseNumber').value.trim();
+        const fromStation = document.getElementById('transferFromStation').value;
+        const toStation = document.getElementById('transferToStation').value;
+        const detective = document.getElementById('transferDetective').value;
+        const reason = document.getElementById('transferReason').value;
+        
+        if (!caseNumber) { alert('Please enter a case number'); return; }
+        if (!toStation) { alert('Please select a destination station'); return; }
+        if (!detective) { alert('Please select a detective'); return; }
+        
+        const res = await fetch('/api/initiate-transfer/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ 
+                case_number: caseNumber, 
+                from_station: fromStation, 
+                to_station: toStation, 
+                assigned_detective: detective, 
+                reason: reason 
+            })
+        });
+        const data = await res.json();
+        if (data.success) { alert('Transfer initiated successfully!'); location.reload(); }
+        else alert('Error: ' + data.message);
+    });
+
+    // Confirm Approve
+    document.getElementById('confirmApproveBtn').addEventListener('click', function() {
+        fetch(`/api/approve-transfer/${currentTransferNumber}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ action: 'approve', notes: document.getElementById('approveNotes').value })
+        }).then(r => r.json()).then(d => { 
+            if (d.success) { alert('Transfer approved'); location.reload(); } 
+            else alert('Error: ' + d.message); 
+        });
+    });
+
+    // Confirm Reject
+    document.getElementById('confirmRejectBtn').addEventListener('click', function() {
+        const reason = document.getElementById('rejectReason').value.trim();
+        if (!reason) { alert('Please provide a reason for rejection'); return; }
+        fetch(`/api/approve-transfer/${currentTransferNumber}/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ action: 'reject', reason: reason })
+        }).then(r => r.json()).then(d => { 
+            if (d.success) { alert('Transfer rejected'); location.reload(); } 
+            else alert('Error: ' + d.message); 
+        });
+    });
+
+    // Bulk Actions
+    function getSelectedTransfers() {
+        let selected = [];
+        document.querySelectorAll('.transfer-checkbox:checked').forEach(cb => {
+            selected.push(cb.getAttribute('data-id'));
+        });
+        return selected;
+    }
+
+    document.getElementById('selectAllPending')?.addEventListener('change', function(e) {
+        document.querySelectorAll('.transfer-checkbox').forEach(cb => cb.checked = e.target.checked);
+        if (document.getElementById('selectAllTable')) {
+            document.getElementById('selectAllTable').checked = e.target.checked;
+        }
+    });
+
+    document.getElementById('selectAllTable')?.addEventListener('change', function(e) {
+        document.querySelectorAll('.transfer-checkbox').forEach(cb => cb.checked = e.target.checked);
+        if (document.getElementById('selectAllPending')) {
+            document.getElementById('selectAllPending').checked = e.target.checked;
+        }
+    });
+
+    document.getElementById('bulkApproveBtn')?.addEventListener('click', function() {
+        let selected = getSelectedTransfers();
+        if (selected.length === 0) { alert('Select transfers to approve'); return; }
+        if (confirm(`Approve ${selected.length} transfer(s)?`)) {
+            fetch('/api/bulk-approve-transfers/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                body: JSON.stringify({ transfer_ids: selected, notes: 'Bulk approval by Commander' })
+            }).then(r => r.json()).then(d => { if (d.success) location.reload(); else alert('Error: ' + d.message); });
+        }
+    });
+
+    document.getElementById('bulkRejectBtn')?.addEventListener('click', function() {
+        let selected = getSelectedTransfers();
+        if (selected.length === 0) { alert('Select transfers to reject'); return; }
+        let reason = prompt('Reason for rejecting these transfers:');
+        if (reason) {
+            fetch('/api/bulk-reject-transfers/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                body: JSON.stringify({ transfer_ids: selected, reason: reason })
+            }).then(r => r.json()).then(d => { if (d.success) location.reload(); else alert('Error: ' + d.message); });
+        }
+    });
+</script>
+{% endblock %}

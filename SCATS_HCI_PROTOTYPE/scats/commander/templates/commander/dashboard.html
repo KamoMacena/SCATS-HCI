@@ -1,0 +1,447 @@
+{% extends 'commander/base.html' %}
+
+{% block content %}
+<style>
+    .welcome-card {
+        background: linear-gradient(135deg, #1a2c4e 0%, #243b61 100%);
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin-bottom: 28px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .welcome-text h2 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    .welcome-text p { opacity: 0.8; font-size: 13px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 18px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-left: 4px solid;
+        text-align: center;
+    }
+    .stat-card.total { border-left-color: #3b82f6; }
+    .stat-card.active { border-left-color: #22c55e; }
+    .stat-card.atrisk { border-left-color: #f59e0b; }
+    .stat-card.stalled { border-left-color: #ef4444; }
+    .stat-card.solved { border-left-color: #8b5cf6; }
+    .stat-card h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; }
+    .stat-number { font-size: 32px; font-weight: 700; color: #1f2937; }
+    body.dark-mode .stat-card { background: #1a1f2e; }
+    body.dark-mode .stat-number { color: #e2e8f0; }
+
+    .realtime-section {
+        background: #eff6ff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        margin-bottom: 28px;
+        border-left: 4px solid #3b82f6;
+    }
+    body.dark-mode .realtime-section { background: #1e2a3a; }
+    .realtime-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .urgent-badge { background: #ef4444; color: white; padding: 4px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; }
+
+    .analytics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 28px; }
+    .analytics-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .analytics-card { background: #1a1f2e; }
+    .analytics-card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    body.dark-mode .analytics-card h3 { border-bottom-color: #2d3748; }
+
+    .detective-list { margin-top: 10px; }
+    .detective-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e5e7eb;
+        cursor: pointer;
+    }
+    .detective-item:hover { background: #f3f4f6; padding-left: 8px; border-radius: 8px; }
+    body.dark-mode .detective-item:hover { background: #2d3748; }
+    .detective-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .detective-count { font-weight: 700; color: #ef4444; }
+    .progress-bar { flex: 1; height: 5px; background: #e5e7eb; border-radius: 10px; margin: 0 14px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 10px; }
+
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 28px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .chart-card { background: #1a1f2e; }
+    .chart-card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .chart-card canvas { max-height: 280px; width: 100%; }
+
+    .recent-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 28px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .recent-card { background: #1a1f2e; }
+    .recent-card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 18px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .activity-table { width: 100%; border-collapse: collapse; }
+    .activity-table th { text-align: left; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-transform: uppercase; color: #6b7280; }
+    .activity-table td { padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+    .clickable-case { cursor: pointer; font-weight: 600; color: #3b82f6; text-decoration: none; }
+    .clickable-case:hover { text-decoration: underline; }
+
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+    .status-active { background: #dcfce7; color: #166534; }
+    .status-atrisk { background: #fef3c7; color: #92400e; }
+    .status-stalled { background: #fee2e2; color: #991b1b; }
+    .status-solved { background: #ede9fe; color: #5b21b6; }
+    body.dark-mode .status-active { background: #1a3a2a; color: #4ade80; }
+    body.dark-mode .status-atrisk { background: #3d2a1a; color: #fbbf24; }
+    body.dark-mode .status-stalled { background: #4a2424; color: #f87171; }
+
+    .view-link { margin-top: 16px; display: inline-block; color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 13px; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 20px; width: 80%; max-width: 750px; max-height: 80vh; overflow-y: auto; padding: 24px; }
+    body.dark-mode .modal-content { background: #1a1f2e; }
+    .modal-content h3 { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+    .modal-cases-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .modal-cases-table th { text-align: left; padding: 10px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb; }
+    .modal-cases-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
+    .btn-cancel { background: #6b7280; color: white; padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; margin-top: 16px; }
+    .detail-row { display: flex; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
+    .detail-label { font-weight: 600; width: 130px; }
+
+    @media (max-width: 1000px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } .analytics-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+
+<div class="dashboard-content">
+    <!-- Welcome Card -->
+    <div class="welcome-card">
+        <div class="welcome-text">
+            <h2>Welcome back, {{ commander.name }}</h2>
+            <p>Command overview for {{ commander.station }} Station</p>
+        </div>
+        <div style="background: rgba(255,255,255,0.15); padding: 8px 18px; border-radius: 40px; font-size: 13px;">
+            <i class="fas fa-shield-haltered"></i> SAPS Command Console
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total"><h3>Total Cases</h3><div class="stat-number">{{ total_cases|default:0 }}</div></div>
+        <div class="stat-card active"><h3>Active</h3><div class="stat-number">{{ active_cases|default:0 }}</div></div>
+        <div class="stat-card atrisk"><h3>At Risk</h3><div class="stat-number">{{ at_risk_cases|default:0 }}</div></div>
+        <div class="stat-card stalled"><h3>Stalled</h3><div class="stat-number">{{ stalled_cases|default:0 }}</div></div>
+        <div class="stat-card solved"><h3>Solved</h3><div class="stat-number">{{ solved_cases|default:0 }}</div></div>
+    </div>
+
+    <!-- Real-time Assignment -->
+    <div class="realtime-section">
+        <div class="realtime-header">
+            <h3><i class="fas fa-bolt"></i> New Cases Awaiting Assignment</h3>
+            <span class="urgent-badge">{{ today_unassigned_cases|length }} case{% if today_unassigned_cases|length != 1 %}s{% endif %}</span>
+        </div>
+        {% if today_unassigned_cases %}
+        <div style="overflow-x: auto;">
+            <table style="width:100%; border-collapse: collapse;">
+                <thead><tr><th>Case Number</th><th>Violation</th><th>Registered</th><th>Assign To</th><th></th></tr></thead>
+                <tbody>
+                    {% for case in today_unassigned_cases %}
+                    <tr>
+                        <td><strong>{{ case.case_number }}</strong> <span style="background:#ef4444; color:white; font-size:10px; padding:2px 8px; border-radius:20px;">NEW</span></td>
+                        <td>{{ case.crime_category }}</td>
+                        <td><i class="far fa-clock"></i> {{ case.reported_date|date:"H:i" }}</td>
+                        <td><select id="assign-{{ case.case_number }}" style="padding:6px 10px; border-radius:8px; border:1px solid #ddd;">
+                            <option value="">Select Officer</option>
+                            <option value="Det. Molefe">Det. Molefe</option>
+                            <option value="Det. Nkosi">Det. Nkosi</option>
+                            <option value="Det. Dlamini">Det. Dlamini</option>
+                            <option value="Det. Cele">Det. Cele</option>
+                            <option value="Det. van Zyl">Det. van Zyl</option>
+                            <option value="Det. Botha">Det. Botha</option>
+                        </select></td>
+                        <td><button class="btn-assign" style="background:#3b82f6; color:white; border:none; padding:6px 16px; border-radius:8px; cursor:pointer;" onclick="realtimeAssign('{{ case.case_number }}')">Assign</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align:center; padding:24px;"><i class="fas fa-check-circle" style="font-size:36px; color:#22c55e;"></i><p style="margin-top:12px;">All new cases have been assigned</p></div>
+        {% endif %}
+    </div>
+
+    <!-- Analytics Grid -->
+    <div class="analytics-grid">
+        <!-- Cases by Crime Category Chart - FIXED -->
+        <div class="analytics-card">
+            <h3><i class="fas fa-chart-bar" style="color:#3b82f6;"></i> Cases by Crime Category</h3>
+            <canvas id="crimeChart" width="400" height="280" style="max-height: 280px; width: 100%;"></canvas>
+        </div>
+
+        <!-- Detective Workload -->
+        <div class="analytics-card">
+            <h3><i class="fas fa-users" style="color:#8b5cf6;"></i> Detective Workload <span style="font-size:10px; color:#6b7280;">(Click name to see cases)</span></h3>
+            <div class="detective-list">
+                {% for detective in detective_workload %}
+                <div class="detective-item" onclick="showDetectiveCases('{{ detective.name }}')">
+                    <div class="detective-name"><i class="fas fa-user-shield"></i> {{ detective.name }}</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width: {{ detective.percentage }}%;"></div></div>
+                    <div class="detective-count">{{ detective.case_count }} cases</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stalled vs Active Chart -->
+    <div class="chart-card">
+        <h3><i class="fas fa-chart-pie" style="color:#ef4444;"></i> Stalled vs Active Ratio</h3>
+        <canvas id="stalledActiveChart" width="400" height="280" style="max-height: 280px; width: 100%;"></canvas>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-card">
+        <h3><i class="fas fa-history" style="color:#f59e0b;"></i> Recent Activity</h3>
+        <div style="overflow-x: auto;">
+            <table class="activity-table">
+                <thead><tr><th>Case ID</th><th>Status</th><th>Last Updated</th></tr></thead>
+                <tbody>
+                    {% for case in recent_activities %}
+                    <tr>
+                        <td><span class="clickable-case" onclick="showCaseDetails('{{ case.case_number }}', '{{ case.crime_category }}', '{{ case.assigned_detective|default:"Unassigned" }}', '{{ case.days_inactive }}', '{{ case.get_status_display }}', '{{ case.updated_at|date:"d M Y H:i" }}', '{{ case.reported_date|date:"d M Y" }}')">{{ case.case_number }}</span></td>
+                        <td><span class="status-badge status-{% if case.status == 'ACTIVE' %}active{% elif case.status == 'AT_RISK' %}atrisk{% elif case.status == 'STALLED' %}stalled{% else %}solved{% endif %}">{{ case.get_status_display }}</span></td>
+                        <td>{{ case.updated_at|date:"d M H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" style="text-align:center; padding:32px;">No recent activity</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{% url 'alerts_center' %}" class="view-link">View all alerts <i class="fas fa-arrow-right"></i></a>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="analytics-card" style="margin-bottom:0;">
+        <h3><i class="fas fa-chart-simple" style="color:#8b5cf6;"></i> Performance Summary</h3>
+        <div style="display: flex; justify-content: space-between; text-align: center;">
+            <div style="flex:1;"><small>Resolution Rate</small><br><strong>{% widthratio solved_cases total_cases 100 %}%</strong></div>
+            <div style="flex:1;"><small>Stalled Rate</small><br><strong>{% widthratio stalled_cases total_cases 100 %}%</strong></div>
+            <div style="flex:1;"><small>Active Rate</small><br><strong>{% widthratio active_cases total_cases 100 %}%</strong></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Detective Cases -->
+<div id="detectiveModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-user-shield"></i> Cases Assigned to: <span id="detectiveName"></span></h3>
+        <div style="overflow-x: auto;">
+            <table class="modal-cases-table">
+                <thead><tr><th>Case Number</th><th>Crime Category</th><th>Status</th><th>Days Inactive</th><th>Last Updated</th></tr></thead>
+                <tbody id="detectiveCasesBody"><tr><td colspan="5" style="text-align:center; padding:30px;">Loading...</td></tr></tbody>
+            </table>
+        </div>
+        <div style="text-align: right;"><button class="btn-cancel" onclick="closeModal('detectiveModal')">Close</button></div>
+    </div>
+</div>
+
+<!-- Modal for Case Details -->
+<div id="caseDetailModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-folder-open"></i> Case Details</h3>
+        <div id="caseDetailContent">
+            <div class="detail-row"><div class="detail-label">Case Number:</div><div class="detail-value" id="detailCaseNumber"></div></div>
+            <div class="detail-row"><div class="detail-label">Crime Category:</div><div class="detail-value" id="detailCrimeCategory"></div></div>
+            <div class="detail-row"><div class="detail-label">Assigned Detective:</div><div class="detail-value" id="detailDetective"></div></div>
+            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value" id="detailStatus"></div></div>
+            <div class="detail-row"><div class="detail-label">Days Inactive:</div><div class="detail-value" id="detailDaysInactive"></div></div>
+            <div class="detail-row"><div class="detail-label">Reported Date:</div><div class="detail-value" id="detailReportedDate"></div></div>
+            <div class="detail-row"><div class="detail-label">Last Updated:</div><div class="detail-value" id="detailLastUpdated"></div></div>
+        </div>
+        <div style="text-align: right;"><button class="btn-cancel" onclick="closeModal('caseDetailModal')">Close</button></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const isDark = document.body.classList.contains('dark-mode');
+    const textColor = isDark ? '#e2e8f0' : '#1f2937';
+    const gridColor = isDark ? '#2d3748' : '#e5e7eb';
+
+    // ========== CRIME CHART - FIXED ==========
+    const crimeCtx = document.getElementById('crimeChart').getContext('2d');
+    const crimeLabels = {{ crime_labels|safe }};
+    const crimeData = {{ crime_data|safe }};
+
+    console.log("Crime Labels:", crimeLabels);
+    console.log("Crime Data:", crimeData);
+
+    if (crimeLabels && crimeLabels.length > 0 && crimeData && crimeData.length > 0) {
+        new Chart(crimeCtx, {
+            type: 'bar',
+            data: {
+                labels: crimeLabels,
+                datasets: [{
+                    label: 'Number of Cases',
+                    data: crimeData,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top', labels: { color: textColor, font: { size: 11 } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: textColor, stepSize: 1 }, grid: { color: gridColor } },
+                    x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } }
+                }
+            }
+        });
+    } else {
+        crimeCtx.canvas.parentElement.innerHTML = '<div style="text-align:center; padding:40px; color:#9ca3af;"><i class="fas fa-chart-simple" style="font-size:48px; margin-bottom:15px;"></i><p>No crime data available</p><p style="font-size:12px;">Import cases to see the chart</p></div>';
+    }
+
+    // ========== STALLED VS ACTIVE CHART ==========
+    const stalledCtx = document.getElementById('stalledActiveChart').getContext('2d');
+    new Chart(stalledCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active Cases', 'At Risk', 'Stalled', 'Solved'],
+            datasets: [{
+                data: [{{ active_cases|default:0 }}, {{ at_risk_cases|default:0 }}, {{ stalled_cases|default:0 }}, {{ solved_cases|default:0 }}],
+                backgroundColor: ['#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, font: { size: 11 } } },
+                tooltip: { callbacks: { label: function(context) { const label = context.label || ''; const value = context.raw || 0; const total = context.dataset.data.reduce((a,b)=>a+b,0); const pct = total > 0 ? Math.round((value/total)*100) : 0; return `${label}: ${value} (${pct}%)`; } } }
+            }
+        }
+    });
+
+    function updateAllCharts() {
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const newTextColor = isDarkMode ? '#e2e8f0' : '#1f2937';
+        const newGridColor = isDarkMode ? '#2d3748' : '#e5e7eb';
+        Chart.instances.forEach(chart => {
+            if (chart.options && chart.options.scales) {
+                if (chart.options.scales.y) chart.options.scales.y.ticks.color = newTextColor;
+                if (chart.options.scales.y) chart.options.scales.y.grid.color = newGridColor;
+                if (chart.options.scales.x) chart.options.scales.x.ticks.color = newTextColor;
+                if (chart.options.scales.x) chart.options.scales.x.grid.color = newGridColor;
+            }
+            if (chart.options && chart.options.plugins && chart.options.plugins.legend) {
+                chart.options.plugins.legend.labels.color = newTextColor;
+            }
+            chart.update();
+        });
+    }
+    window.addEventListener('darkmodechange', updateAllCharts);
+
+    function realtimeAssign(caseNumber) {
+        const select = document.getElementById(`assign-${caseNumber}`);
+        const detective = select.value;
+        if (!detective) { alert('Please select a detective'); return; }
+        fetch('/api/assign-detective/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: JSON.stringify({ case_number: caseNumber, detective_name: detective })
+        }).then(r => r.json()).then(d => { if (d.success) location.reload(); else alert('Error: ' + d.message); });
+    }
+
+    function showDetectiveCases(detectiveName) {
+        document.getElementById('detectiveName').innerText = detectiveName;
+        document.getElementById('detectiveCasesBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px;">Loading...</td></tr>';
+        document.getElementById('detectiveModal').classList.add('active');
+        fetch(`/api/detective-cases/${encodeURIComponent(detectiveName)}/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.cases.length > 0) {
+                    let rows = '';
+                    data.cases.forEach(c => {
+                        let statusClass = '';
+                        if (c.status === 'ACTIVE') statusClass = 'active';
+                        else if (c.status === 'AT_RISK') statusClass = 'atrisk';
+                        else if (c.status === 'STALLED') statusClass = 'stalled';
+                        else statusClass = 'solved';
+                        rows += `<tr><td><strong>${c.case_number}</strong></td><td>${c.crime_category}</td><td><span class="status-badge status-${statusClass}">${c.status.replace('_', ' ')}</span></td><td>${c.days_inactive} days</td><td>${c.last_updated}</td></tr>`;
+                    });
+                    document.getElementById('detectiveCasesBody').innerHTML = rows;
+                } else {
+                    document.getElementById('detectiveCasesBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px;">No cases assigned</td></tr>';
+                }
+            });
+    }
+
+    function showCaseDetails(caseNumber, crime, detective, daysInactive, status, lastUpdated, reportedDate) {
+        document.getElementById('detailCaseNumber').innerText = caseNumber;
+        document.getElementById('detailCrimeCategory').innerText = crime;
+        document.getElementById('detailDetective').innerText = detective;
+        document.getElementById('detailStatus').innerHTML = `<span class="status-badge status-${status.toLowerCase().replace(' ', '')}">${status}</span>`;
+        document.getElementById('detailDaysInactive').innerText = daysInactive + ' days';
+        document.getElementById('detailReportedDate').innerText = reportedDate;
+        document.getElementById('detailLastUpdated').innerText = lastUpdated;
+        document.getElementById('caseDetailModal').classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+</script>
+{% endblock %}

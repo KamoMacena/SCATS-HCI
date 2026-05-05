@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCATS - Command & Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ========== CSS VARIABLES ========== */
+        :root {
+            --primary: #1a365d;
+            --primary-dark: #0f2b4d;
+            --primary-light: #2b4f7c;
+            --secondary: #c0392b;
+            --accent: #f39c12;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --gray-100: #f8f9fa;
+            --gray-200: #e9ecef;
+            --gray-300: #dee2e6;
+            --gray-400: #ced4da;
+            --gray-500: #adb5bd;
+            --gray-600: #6c757d;
+            --gray-700: #495057;
+            --gray-800: #343a40;
+            --gray-900: #212529;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            display: flex;
+        }
+
+        /* ========== DARK MODE ========== */
+        body.dark-mode {
+            background: #12121a;
+            color: #eef2ff;
+        }
+        body.dark-mode .sidebar { background: #0a0a1a; }
+        body.dark-mode .top-bar { background: #1e1e2f; border-bottom-color: #2a2a3e; }
+        body.dark-mode .stat-card, body.dark-mode .card { background: #1e1e2f; }
+        body.dark-mode .table-wrapper { background: #1e1e2f; border-color: #2a2a3e; }
+        body.dark-mode .table-wrapper th { background: #16162a; color: #aaa; }
+        body.dark-mode .table-wrapper td { border-bottom-color: #2a2a3e; color: #eef2ff; }
+
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--primary);
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-header {
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .logo-img { width: 80px; margin-bottom: 15px; }
+        .saps-title { font-weight: 700; font-size: 18px; color: white; letter-spacing: 1px; }
+        .saps-subtitle { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 24px;
+            text-decoration: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            border-left: 3px solid transparent;
+            margin: 4px 0;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.1); color: white; padding-left: 28px; }
+        .nav-item.active { background: rgba(255,255,255,0.15); color: white; border-left-color: var(--accent); }
+        .nav-item i { width: 24px; margin-right: 12px; font-size: 16px; }
+
+        /* ========== MAIN CONTENT ========== */
+        .main { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); min-height: 100vh; }
+
+        /* ========== TOP BAR ========== */
+        .top-bar {
+            height: var(--header-height);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+        .top-left { display: flex; align-items: center; gap: 20px; }
+        .live-clock {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--gray-100);
+            padding: 8px 18px;
+            border-radius: 40px;
+        }
+        body.dark-mode .live-clock { background: #2a2a3e; }
+        .clock-time { font-weight: 600; font-size: 15px; font-family: monospace; }
+        .clock-date { font-size: 12px; color: var(--gray-600); }
+        body.dark-mode .clock-date { color: #aaa; }
+
+        .top-right { display: flex; align-items: center; gap: 25px; }
+        .bell-icon {
+            position: relative;
+            font-size: 22px;
+            color: var(--gray-600);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .bell-icon:hover { color: var(--primary); transform: scale(1.05); }
+        .bell-badge {
+            position: absolute;
+            top: -8px;
+            right: -10px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 50%;
+            min-width: 18px;
+            text-align: center;
+        }
+        .bell-badge.hide { display: none; }
+
+        .commander-profile { display: flex; align-items: center; gap: 15px; }
+        .commander-info { text-align: right; }
+        .commander-name { font-weight: 700; color: var(--primary); }
+        body.dark-mode .commander-name { color: #ccc; }
+        .commander-rank { font-size: 11px; color: var(--gray-600); }
+        .commander-avatar {
+            width: 45px; height: 45px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .dark-mode-toggle {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray-600);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+        .dark-mode-toggle:hover { background: var(--gray-200); }
+
+        /* ========== CONTENT AREA ========== */
+        .dashboard-content { padding: 30px; }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .sidebar { width: 80px; }
+            .sidebar .saps-title, .sidebar .saps-subtitle, .nav-item span { display: none; }
+            .nav-item i { margin-right: 0; }
+            .main { margin-left: 80px; width: calc(100% - 80px); }
+            .clock-date { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="{% static 'commander/images/saps-logo.jpg' %}" class="logo-img" alt="SAPS">
+            <div class="saps-title">SAPS SCATS</div>
+            <div class="saps-subtitle">Command & Control</div>
+        </div>
+        <nav>
+            <a href="{% url 'dashboard' %}" class="nav-item" id="nav-dashboard"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a>
+            <a href="{% url 'flagged_cases' %}" class="nav-item" id="nav-flagged"><i class="fas fa-flag"></i><span>Flagged Cases</span></a>
+            <a href="{% url 'complaints' %}" class="nav-item" id="nav-complaints"><i class="fas fa-comment-dots"></i><span>Complaints</span></a>
+            <a href="{% url 'transfers' %}" class="nav-item" id="nav-transfers"><i class="fas fa-exchange-alt"></i><span>Transfers</span></a>
+        </nav>
+        <a href="{% url 'sign_out' %}" class="nav-item" style="margin-top: auto; margin-bottom: 20px;"><i class="fas fa-sign-out-alt"></i><span>Sign Out</span></a>
+    </div>
+
+    <div class="main">
+        <div class="top-bar">
+            <div class="top-left">
+                <div class="live-clock">
+                    <i class="fas fa-clock"></i>
+                    <span class="clock-time" id="liveClock">--:--:--</span>
+                    <span class="clock-date" id="liveDate">Loading...</span>
+                </div>
+            </div>
+            <div class="top-right">
+                <button class="dark-mode-toggle" id="darkModeToggle"><i class="fas fa-moon"></i></button>
+                <a href="{% url 'alerts_center' %}" class="bell-icon">
+                    <i class="fas fa-bell"></i>
+                    <span class="bell-badge {% if alert_count == 0 %}hide{% endif %}" id="bellBadge">{{ alert_count|default:0 }}</span>
+                </a>
+                <div class="commander-profile">
+                    <div class="commander-info">
+                        <div class="commander-name">{{ commander.name|default:"Commander" }}</div>
+                        <div class="commander-rank">{{ commander.rank|default:"Station Commander" }}</div>
+                    </div>
+                    <div class="commander-avatar">{{ commander.name.0|default:"SC" }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-ZA', { hour12: false });
+            document.getElementById('liveDate').textContent = now.toLocaleDateString('en-ZA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        const toggle = document.getElementById('darkModeToggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            toggle.innerHTML = document.body.classList.contains('dark-mode') ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        });
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            toggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+
+        const path = window.location.pathname;
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const href = item.getAttribute('href');
+            if (path === '/' && href === '/') item.classList.add('active');
+            else if (href !== '/' && path.includes(href)) item.classList.add('active');
+        });
+    </script>
+</body>
+</html>

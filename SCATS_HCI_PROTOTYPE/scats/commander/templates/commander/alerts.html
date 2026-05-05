@@ -1,0 +1,257 @@
+{% extends 'commander/base.html' %}
+
+{% block content %}
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+    .page-header h1 { font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+    .btn-export { background: linear-gradient(135deg, #27ae60, #219a52); color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; text-decoration: none; transition: var(--transition); }
+    .btn-export:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .alert-badge { background: #e74c3c; color: white; padding: 8px 20px; border-radius: 40px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: white; border-radius: 20px; padding: 22px; border-left: 4px solid; box-shadow: var(--box-shadow); transition: var(--transition); }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card.total { border-left-color: #3498db; }
+    .stat-card.unack { border-left-color: #e74c3c; }
+    .stat-card h4 { font-size: 12px; text-transform: uppercase; color: var(--gray-500); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .stat-number { font-size: 36px; font-weight: 800; }
+    .stat-card.total .stat-number { color: #3498db; }
+    .stat-card.unack .stat-number { color: #e74c3c; }
+
+    .filter-bar { background: white; border-radius: 20px; padding: 20px 24px; margin-bottom: 25px; box-shadow: var(--box-shadow); }
+    .filter-form { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+    .filter-group { flex: 1; min-width: 160px; }
+    .filter-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--gray-500); margin-bottom: 6px; }
+    .filter-group input, .filter-group select { width: 100%; padding: 10px 14px; border: 1px solid var(--gray-300); border-radius: 10px; font-size: 13px; }
+    .btn-apply { background: var(--primary); color: white; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+
+    .table-wrapper { background: white; border-radius: 20px; overflow-x: auto; box-shadow: var(--box-shadow); }
+    .alerts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .alerts-table th { background: var(--gray-100); padding: 16px 14px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--gray-600); border-bottom: 1px solid var(--gray-200); }
+    .alerts-table td { padding: 16px 14px; border-bottom: 1px solid var(--gray-200); vertical-align: middle; }
+    .alerts-table tr:hover td { background: var(--gray-50); }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 30px; font-size: 11px; font-weight: 600; }
+    .badge-atrisk { background: #fff3e0; color: #e67e22; }
+    .badge-stalled { background: #fdecea; color: #c0392b; }
+    .badge-unack { background: #fdecea; color: #c0392b; }
+
+    .days-critical { color: #dc2626; font-weight: 700; }
+    .days-warning { color: #d97706; font-weight: 600; }
+
+    .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { padding: 6px 14px; border: none; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+    .btn-acknowledge { background: #f39c12; color: white; }
+    .btn-acknowledge:hover { background: #e67e22; transform: scale(1.02); }
+    .btn-resolve { background: #27ae60; color: white; }
+    .btn-resolve:hover { background: #219a52; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 24px; width: 500px; max-width: 90%; padding: 28px; }
+    body.dark-mode .modal-content { background: #1e1e2f; }
+    .modal-content textarea { width: 100%; height: 120px; padding: 12px; border: 1px solid var(--gray-300); border-radius: 12px; margin: 15px 0; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+    .btn-save { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; }
+    .btn-cancel { background: #95a5a6; color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; }
+
+    .detective-select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--gray-300); font-size: 11px; background: white; }
+    body.dark-mode .detective-select { background: #2a2a3e; border-color: #3a3a4e; color: white; }
+    .btn-assign { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; }
+    .btn-assign:hover { background: #2980b9; }
+
+    .empty-state { text-align: center; padding: 60px; color: var(--gray-500); }
+    .empty-state i { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+
+    @media (max-width: 900px) { .stats-row { grid-template-columns: 1fr; } }
+</style>
+
+<div class="dashboard-content">
+    <div class="page-header">
+        <h1><i class="fas fa-bell" style="color: #f39c12;"></i> Alerts Centre</h1>
+        <div style="display: flex; gap: 12px;">
+            <a href="{% url 'export_alerts_excel' %}" class="btn-export"><i class="fas fa-file-excel"></i> Export Alerts</a>
+            <div class="alert-badge"><i class="fas fa-microchip"></i> Needs Your Attention</div>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card total"><h4><i class="fas fa-flag"></i> TOTAL ALERTS</h4><div class="stat-number">{{ alerts|length }}</div></div>
+        <div class="stat-card unack"><h4><i class="fas fa-bell"></i> NEEDS ACTION</h4><div class="stat-number" id="unackCount">{{ unacknowledged_count }}</div></div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="GET" action="{% url 'alerts_center' %}" class="filter-form">
+            <div class="filter-group"><label><i class="fas fa-search"></i> SEARCH</label><input type="text" name="search" placeholder="CAS number..." value="{{ search_query }}"></div>
+            <div class="filter-group"><label><i class="fas fa-tag"></i> STATUS</label><select name="status"><option value="">All</option><option value="AT_RISK" {% if selected_status == 'AT_RISK' %}selected{% endif %}>At Risk</option><option value="STALLED" {% if selected_status == 'STALLED' %}selected{% endif %}>Stalled</option></select></div>
+            <div class="filter-group"><button type="submit" class="btn-apply"><i class="fas fa-filter"></i> Apply</button></div>
+        </form>
+    </div>
+
+    <div class="table-wrapper">
+        {% if alerts %}
+        <table class="alerts-table">
+            <thead>
+                <tr>
+                    <th>CAS Number</th>
+                    <th>Crime</th>
+                    <th>Status</th>
+                    <th>Days</th>
+                    <th>Detective</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr data-cas="{{ alert.cas_number }}">
+                    <td><strong>{{ alert.cas_number }}</strong></td>
+                    <td>{{ alert.crime_category }}</a>
+                    <td>
+                        <span class="badge {% if alert.stall_status == 'AT_RISK' %}badge-atrisk{% else %}badge-stalled{% endif %}">
+                            <i class="fas {% if alert.stall_status == 'AT_RISK' %}fa-chart-line{% else %}fa-stop-circle{% endif %}"></i>
+                            {% if alert.stall_status == 'AT_RISK' %}At Risk{% else %}Stalled{% endif %}
+                        </span>
+                    </a>
+                    <td>
+                        <span class="{% if alert.days_inactive >= 30 %}days-critical{% elif alert.days_inactive >= 14 %}days-warning{% endif %}">
+                            {{ alert.days_inactive }} days
+                        </span>
+                    </a>
+                    <td>
+                        <div style="display: flex; gap: 5px;">
+                            <select class="detective-select" data-cas="{{ alert.cas_number }}">
+                                <option value="">Assign...</option>
+                                <option value="Det. Molefe">Det. Molefe</option>
+                                <option value="Det. Nkosi">Det. Nkosi</option>
+                                <option value="Det. Dlamini">Det. Dlamini</option>
+                                <option value="Det. Cele">Det. Cele</option>
+                                <option value="Det. van Zyl">Det. van Zyl</option>
+                                <option value="Det. Botha">Det. Botha</option>
+                            </select>
+                            <button class="btn-assign" data-cas="{{ alert.cas_number }}">Assign</button>
+                        </div>
+                    </a>
+                    <td class="action-buttons">
+                        <button class="btn btn-acknowledge" data-cas="{{ alert.cas_number }}"><i class="fas fa-check"></i> Acknowledge</button>
+                        <button class="btn btn-resolve" data-cas="{{ alert.cas_number }}" disabled><i class="fas fa-check-circle"></i> Resolve</button>
+                    </a>
+                </a>
+                {% endfor %}
+            </tbody>
+        </a>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-check-circle"></i><p>No pending alerts</p><p style="font-size: 12px;">All alerts have been acknowledged</p></div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="ackModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-pen-alt"></i> Action Plan</h3>
+        <p>Case: <strong id="modalCas"></strong></p>
+        <textarea id="actionNote" placeholder="Describe your action plan..."></textarea>
+        <div class="modal-buttons">
+            <button class="btn-cancel" id="closeModal">Cancel</button>
+            <button class="btn-save" id="saveAck">Save & Acknowledge</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let alertsData = [
+        {% for alert in alerts %}
+        {cas_number: "{{ alert.cas_number }}", acknowledged: false},
+        {% endfor %}
+    ];
+    
+    let currentCas = null;
+
+    function updateStats() {
+        let unackCount = alertsData.filter(a => !a.acknowledged).length;
+        document.getElementById('unackCount').innerText = unackCount;
+        let badge = document.getElementById('bellBadge');
+        if(badge) {
+            badge.innerText = unackCount;
+            if(unackCount == 0) badge.classList.add('hide');
+            else badge.classList.remove('hide');
+        }
+    }
+
+    function updateAfterAcknowledge(cas) {
+        let row = document.querySelector(`tr[data-cas="${cas}"]`);
+        if(row) {
+            let ackBtn = row.querySelector('.btn-acknowledge');
+            if(ackBtn) {
+                ackBtn.innerHTML = '<i class="fas fa-check"></i> Acknowledged';
+                ackBtn.disabled = true;
+            }
+            let resolveBtn = row.querySelector('.btn-resolve');
+            if(resolveBtn) resolveBtn.disabled = false;
+        }
+        let idx = alertsData.findIndex(a => a.cas_number === cas);
+        if(idx !== -1) alertsData[idx].acknowledged = true;
+        updateStats();
+    }
+
+    document.querySelectorAll('.btn-acknowledge:not(:disabled)').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentCas = this.getAttribute('data-cas');
+            document.getElementById('modalCas').innerText = currentCas;
+            document.getElementById('ackModal').classList.add('active');
+        });
+    });
+
+    document.querySelectorAll('.btn-resolve:not(:disabled)').forEach(btn => {
+        btn.addEventListener('click', function() {
+            let cas = this.getAttribute('data-cas');
+            if(confirm('Resolve this case? This will close the case.')) {
+                fetch('/api/alerts/resolve/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+                    body: JSON.stringify({cas_number: cas})
+                }).then(r => r.json()).then(d => {
+                    if(d.success) location.reload();
+                    else alert('Error: ' + d.message);
+                });
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-assign').forEach(btn => {
+        btn.addEventListener('click', function() {
+            let cas = this.getAttribute('data-cas');
+            let sel = document.querySelector(`.detective-select[data-cas="${cas}"]`);
+            let det = sel.value;
+            if(!det) { alert('Select a detective'); return; }
+            fetch('/api/assign-detective/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+                body: JSON.stringify({case_number: cas, detective_name: det})
+            }).then(r => r.json()).then(d => {
+                if(d.success) { alert(d.message); location.reload(); }
+                else alert('Error');
+            });
+        });
+    });
+
+    document.getElementById('closeModal').onclick = () => document.getElementById('ackModal').classList.remove('active');
+    document.getElementById('saveAck').onclick = async () => {
+        let note = document.getElementById('actionNote').value.trim();
+        if(!note) { alert('Please write an action plan'); return; }
+        let res = await fetch('/api/alerts/acknowledge/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value},
+            body: JSON.stringify({cas_number: currentCas, action_note: note})
+        });
+        let d = await res.json();
+        if(d.success) {
+            updateAfterAcknowledge(currentCas);
+            document.getElementById('ackModal').classList.remove('active');
+            document.getElementById('actionNote').value = '';
+        } else alert('Error: ' + d.message);
+    };
+
+    updateStats();
+</script>
+{% endblock %}
